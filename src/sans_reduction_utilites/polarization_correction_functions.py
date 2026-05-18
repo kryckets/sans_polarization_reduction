@@ -21,30 +21,30 @@ from sans_reduction_utilites.reduction_functions import get_by_filenumber, AllSA
 
 #The following paramters should rarely be touched (just initialize this cell)
 SampleApertureInMM = True #Override in case sample aperture entered in cm rather than mm
-PreSebtractOpen = 0 #Default is 0 for no; 1 for yes. Subtracts trans-scaled open (if available) from pol-full in attempt to remove main beam spillover.
-Calc_Q_From_Trans = 1 #Default is 1 for yes; 0 for no
-AverageQRanges = 0 #0 for no; 1 for yes
-YesNoShowPlots = 0 #0 = No and simply saves plots; 1 = yes and displays plots when code is run
-CompareUnpolCirc = 1
-CompareHalfPolSumCirc = 1
-CompareFullPolSumCirc = 1
-CompareFullPolStruc = 1
-CompareFullPolMagnetism = 1
-YesNo_2DCombinedFiles = 0 #Default is 0 (no), 1 = yes which can be read using SasView
-YesNo_2DFilesPerDetector = 0 #Default is 0 (no), 1 = yes; Note all detectors will be summed after beamline masking applied and can be read by SasView 4.2.2 (and higher?)
+PreSebtractOpen = False #Default is False for no; True for yes. Subtracts trans-scaled open (if available) from pol-full in attempt to remove main beam spillover.
+Calc_Q_From_Trans = True #Default is True for yes; False for no
+AverageQRanges = False #False for no; True for yes
+YesNoShowPlots = False #False = No and simply saves plots; True = yes and displays plots when code is run
+CompareUnpolCirc = True
+CompareHalfPolSumCirc = True
+CompareFullPolSumCirc = True
+CompareFullPolStruc = True
+CompareFullPolMagnetism = True
+YesNo_2DCombinedFiles = False #Default is False (no), True = yes which can be read using SasView
+YesNo_2DFilesPerDetector = False #Default is False (no), True = yes; Note all detectors will be summed after beamline masking applied and can be read by SasView 4.2.2 (and higher?)
 MidddlePixelBorderHorizontal = 4 #Default = 4
 MidddlePixelBorderVertical = 4 #Default = 4
-ConvertHighResToSubset = 1 #Default = 1 for yes (uses only a small subset of the million plus pixels for approximately an 18 x's savings in computing power).
+ConvertHighResToSubset = True #Default = True for yes (uses only a small subset of the million plus pixels for approximately an 18 x's savings in computing power).
 HighResGain = 100.0
-UsePolCorr = 1 #Default is 1 to pol-correct full-pol data, 0 means no and will only correct for 3He transmission as a function of time.
-He3CorrectionType = 1 #0 for chi, 1 for chi = upsilon (only active if YesNoManualHe3Entry = 1), 2 for upsilon
-YesNoBypassBestGuessPSM = 0 #Default is 1, will bypass to higher (or the highest) PSM value if one (or more) is/are measured
+UsePolCorr = True #Default is True to pol-correct full-pol data, False means no and will only correct for 3He transmission as a function of time.
+He3CorrectionType = 1 #0 for chi, 1 for chi = upsilon (only active if YesNoManualHe3Entry = True), 2 for upsilon
+YesNoBypassBestGuessPSM = False #Default is False, will bypass to higher (or the highest) PSM value if one (or more) is/are measured
 PSM_Guess = 0.9985 #0.9985 is good for 4 guides, 5.5 angstroms
 Minimum_PSM = 0.01
-YesNoManualHe3Entry = 0 #0 for no (default), 1 for yes; should not be needed for data taken after July 2019 if He3 cells are properly registered
-New_HE3_Files = [77070, 77297, 77566] #Default is []; These would be the starting files for each new cell IF YesNoManualHe3Entry = 1
-MuValues = [3.105, 3.374, 3.105] #Default is []; Values only used IF YesNoManualHe3Entry = 1; example [3.374, 3.105]=[Fras, Bur]; should not be needed after July 2019
-TeValues = [0.86, 0.86, 0.86] #Default is []; Values only used IF YesNoManualHe3Entry = 1; example [0.86, 0.86]=[Fras, Bur]; should not be needed after July 2019
+YesNoManualHe3Entry = False #False for no (default), True for yes; should not be needed for data taken after July 2019 if He3 cells are properly registered
+New_HE3_Files = [77070, 77297, 77566] #Default is []; These would be the starting files for each new cell IF YesNoManualHe3Entry = True
+MuValues = [3.105, 3.374, 3.105] #Default is []; Values only used IF YesNoManualHe3Entry = True; example [3.374, 3.105]=[Fras, Bur]; should not be needed after July 2019
+TeValues = [0.86, 0.86, 0.86] #Default is []; Values only used IF YesNoManualHe3Entry = True; example [0.86, 0.86]=[Fras, Bur]; should not be needed after July 2019
 #High Res Detector is linked to then Converging Beam option (at 6.7 angstroms)
 HighResMinX = 240 #Default 240
 HighResMaxX = 474 #Default 474
@@ -53,17 +53,17 @@ HighResMaxY = 917 #Default 917
 
 Instrument = 'VSANS' #Choices are 'VASNS', 'NG7SANS'
 SectorCutAngles = 15.0 #Default is typically 10.0 to 20.0 (degrees)
-StrucutrallyIsotropic = 0 #0 is the safe bet if you don't know if your sample is strucutrally isotropic
+StrucutrallyIsotropic = False #False is the safe bet if you don't know if your sample is strucutrally isotropic
 
 #********************************************************************
 #**** Run with defaults, unless have reason to do otherwise *********
 #********************************************************************
 
 TempDiffAllowedForSharingTrans = 20.0 #Max temperature difference in K to fill in for missing transmission files
-AutoSubtractEmpty = 1 #Default is 1 for yes; 0 for no. Selecting 1 doesn't cause any issues even if no empties are available.
-YesNoRenameEmpties = 1 #0 = No; 1 = Yes and will simply rename to Empty
-UseMTCirc = 1 #Default is 1 for yes, 0 for no (which instead subtracts sector-by-sector MT from data)
-He3Only_Check = 0 #Default 0 = No (runs full reduction), 1 = Yes (for helium team's use)
+AutoSubtractEmpty = True #Default is True for yes; False for no. Selecting True doesn't cause any issues even if no empties are available.
+YesNoRenameEmpties = True #False = No; True = Yes and will simply rename to Empty
+UseMTCirc = True #Default is True for yes, False for no (which instead subtracts sector-by-sector MT from data)
+He3Only_Check = False #Default False = No (runs full reduction), True = Yes (for helium team's use)
 Absolute_Q_min = 0.005 #Default 0; Will take the maximum of Q_min_Calc from all detectors and this value
 Absolute_Q_max = 0.12 #Default 0.6; Will take the minimum of Q_max_Calc from all detectors and this value
 
@@ -80,12 +80,12 @@ Min_Trans_Filenumber = Min_Filenumber
 Max_Trans_Filenumber = Max_Filenumber
 SampleDescriptionKeywordsToExclude = []
 
-YesNoSetPlotXRange = 0 #Default is 0 (no), 1 = yes
-YesNoSetPlotYRange = 0 #Default is 0 (no), 1 = yes
-PlotXmin = 0.015 #Only used if YesNoSetPlotXRange = 1
-PlotXmax = 0.115 #Only used if YesNoSetPlotXRange = 1
-PlotYmin = 1E-4 #Only used if YesNoSetPlotYRange = 1
-PlotYmax = 1 #Only used if YesNoSetPlotYRange = 1
+YesNoSetPlotXRange = False #Default is False (no), True = yes
+YesNoSetPlotYRange = False #Default is False (no), True = yes
+PlotXmin = 0.015 #Only used if YesNoSetPlotXRange = True
+PlotXmax = 0.115 #Only used if YesNoSetPlotXRange = True
+PlotYmin = 1E-4 #Only used if YesNoSetPlotYRange = True
+PlotYmax = 1 #Only used if YesNoSetPlotYRange = True
 
 
 
@@ -192,8 +192,8 @@ def AllSANS_PolarizationSupermirrorAndFlipper(Pol_Trans, HE3_Cell_Summary, UsePo
             print('Sample Depol * PSM', Pol_Trans[ID]['P_SM'])
             print('Flipping ratios (UU/DU, DD/UD):', int(10000*np.average(UU)/np.average(DU))/10000, int(10000*np.average(DD)/np.average(UD))/10000)
             
-            if UsePolCorr == 0:
-                '''#0 Means no, turn it off'''
+            if not UsePolCorr:
+                '''#False Means no, turn it off'''
                 Pol_Trans[ID]['P_SM'] = 1.0
                 Pol_Trans[ID]['P_F'] = 1.0
                 print('Manually reset P_SM and P_F to unity')
@@ -204,16 +204,16 @@ def AllSANS_PolarizationSupermirrorAndFlipper(Pol_Trans, HE3_Cell_Summary, UsePo
 def vSANS_BestSuperMirrorPolarizationValue(UsePolCorr, Starting_PSM, YesNoBypassBestGuessPSM, Pol_Trans):
     
     Measured_PSM = [Starting_PSM]
-    if YesNoBypassBestGuessPSM > 0:
+    if YesNoBypassBestGuessPSM:
         for Sample in Pol_Trans:              
             if 'P_SM' in Pol_Trans[Sample]:
                 Measured_PSM.append(Pol_Trans[Sample]['P_SM'])
     Truest_PSM = np.amax(Measured_PSM)
-    if UsePolCorr == 1:
+    if UsePolCorr:
         print('Best measured PSM value (currently or previously measured) is', Truest_PSM)
     if Truest_PSM > 1:
         Truest_PSM = 1.0
-        if UsePolCorr == 1:
+        if UsePolCorr:
             print('Best PSM value set to 1.0')
     print(" ")
 
@@ -315,7 +315,7 @@ def vSANS_Record_DataProcessing(Detector_Panels, Instrument, YesNoManualHe3Entry
 
 def He3_Evaluation(He3Only_Check, HE3_TransCatalog):
 
-    if He3Only_Check == 1:
+    if He3Only_Check:
         for entry in HE3_TransCatalog:
             num = len(HE3_TransCatalog[entry]['HE3_IN_file'])
             print('List of transmission files per cell:')
@@ -445,7 +445,7 @@ def QCalculation_AllDetectors(Detector_Panels, Instrument, SampleApertureInMM, S
                 dimYY[dshort] = f['entry/instrument/detector_{ds}/pixel_num_y'.format(ds=dshort)][0]
                 beam_center_x = f['entry/instrument/detector_{ds}/beam_center_x'.format(ds=dshort)][0]
                 beam_center_y = f['entry/instrument/detector_{ds}/beam_center_y'.format(ds=dshort)][0]
-                if Calc_Q_From_Trans > 0:
+                if Calc_Q_From_Trans:
                     X_FR, Y_FR, X_MR, Y_MR = AssignBeamCenterForScattFile(Detector_Panels, Instrument, input_path, Sample_Name, Config, AlignDet_Trans)
                     x_ctr_offset = 0.0
                     y_ctr_offset = 0.0
@@ -594,7 +594,7 @@ def QCalculation_AllDetectors(Detector_Panels, Instrument, SampleApertureInMM, S
                 x_max =  realDistX - beam_center_x + (dimX)*x_pixel_size
                 y_max =  realDistY - beam_center_y + (dimY)*y_pixel_size
                 
-            if ConvertHighResToSubset > 0 and dshort == 'B':
+            if ConvertHighResToSubset and dshort == 'B':
                 dimXX[dshort] = int(HighResMaxX - HighResMinX + 1)
                 dimYY[dshort] = int(HighResMaxY - HighResMinY + 1)
                 x0_pos = x0_pos[HighResMinX:HighResMaxX+1,HighResMinY:HighResMaxY+1]
@@ -861,7 +861,7 @@ def AbsScale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighR
                 Unc = np.sqrt(Sum)/Pixels
                 Ave = np.average(Holder[masks[dshort] > 0])
                 BB[dshort] = Ave
-                if ConvertHighResToSubset > 0 and dshort == 'B':
+                if ConvertHighResToSubset and dshort == 'B':
                     bb_holder = Holder[HighResMinX:HighResMaxX+1,HighResMinY:HighResMaxY+1]
                     bb_sum = np.sum(bb_holder)
                     bb_ave = np.average(Holder[HighResMinX:HighResMaxX+1,HighResMinY:HighResMaxY+1])
@@ -882,7 +882,7 @@ def AbsScale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighR
                         Count_time = f['entry/collection_time'][0]
                         He3Glass_Trans = 1.0
                         if ScattType == 'UU' or ScattType == 'DU'  or ScattType == 'DD'  or ScattType == 'UD':
-                            if YesNoManualHe3Entry == 0:
+                            if not YesNoManualHe3Entry:
                                 He3Glass_Trans = f['/entry/DAS_logs/backPolarization/glassTransmission'][0]
                             else:
                                 He3Glass_Trans = TeValues[0]
@@ -893,7 +893,7 @@ def AbsScale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighR
                             elif 'VSANS' in Instrument:    
                                 data = np.array(f['entry/instrument/detector_{ds}/data'.format(ds=dshort)])
                                 unc = np.array(f['entry/instrument/detector_{ds}/data'.format(ds=dshort)])
-                            if ConvertHighResToSubset > 0 and dshort == 'B':
+                            if ConvertHighResToSubset and dshort == 'B':
                                 data_holder = data/HighResGain
                                 data = data_holder[HighResMinX:HighResMaxX+1,HighResMinY:HighResMaxY+1]
                                 unc = data_holder[HighResMinX:HighResMaxX+1,HighResMinY:HighResMaxY+1]
@@ -964,7 +964,7 @@ def ASCIIlike_Output(Detector_Panels, Instrument, save_path, YesNo_2DFilesPerDet
             IntensityUnc = IntensityUnc.T
             DeltaInt = IntensityUnc.flatten()
             IntensityUnc = IntensityUnc.flatten()
-            if YesNo_2DFilesPerDetector > 0:
+            if YesNo_2DFilesPerDetector:
                 print('Outputting Unpol data into ASCII-like format for {det}, GroupID = {idnum} '.format(det=dshort, idnum=ID))
                 ASCII_like = np.array([QXData, QYData, Int, DeltaInt, QZData, QParlUnc, QPerpUnc, ShadowHolder])
                 ASCII_like = ASCII_like.T
@@ -1004,7 +1004,7 @@ def ASCIIlike_Output(Detector_Panels, Instrument, save_path, YesNo_2DFilesPerDet
 
 def VSANS_MakeSlices_and_SaveASCII(Detector_Panels, Instrument, SampleApertureInMM, SampleDescriptionKeywordsToExclude, UsePolCorr, YesNoManualHe3Entry, input_path, save_path, He3CorrectionType, YesNo_2DFilesPerDetector, YesNo_2DCombinedFiles, Absolute_Q_min, Absolute_Q_max, AverageQRanges, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, HE3_Cell_Summary, Plex, Truest_PSM, Minimum_PSM, AlignDet_Trans, HE3_TransCatalog, start_number, He3Only_Check, ScattCatalog, BlockBeamCatalog, Configs, Sample_Names, TransCatalog, Pol_TransCatalog, MidddlePixelBorderHorizontal, MidddlePixelBorderVertical, SectorCutAngles, Slices):
 
-    if He3Only_Check != 1:
+    if not He3Only_Check:
         QValues_All = {}
         AllFullPolSlices = {}
         AllHalfPolSlices = {}
@@ -1051,7 +1051,7 @@ def VSANS_MakeSlices_and_SaveASCII(Detector_Panels, Instrument, SampleApertureIn
                                 QValues_All = {'QX':Qx,'QY':Qy,'QZ':Qz,'Q_total':Q_total,'Q_perp_unc':Q_perp_unc,'Q_parl_unc':Q_parl_unc}
                                 FullPolGo, UnpolEquiv, PolCorrUU, PolCorrDU, PolCorrDD, PolCorrUD, UnpolEquiv_Unc, PolCorrUU_Unc, PolCorrDU_Unc, PolCorrDD_Unc, PolCorrUD_Unc = AllSANS_PolCorrScattFiles(Detector_Panels, Instrument, UsePolCorr, input_path, He3CorrectionType, Truest_PSM, Minimum_PSM, dimXX, dimYY, Sample, Config, ScattCatalog, TransCatalog, Pol_TransCatalog, UUScaledData, DUScaledData, DDScaledData, UDScaledData, UUScaledData_Unc, DUScaledData_Unc, DDScaledData_Unc, UDScaledData_Unc, HE3_Cell_Summary)
 
-                                if YesNo_2DCombinedFiles > 0:
+                                if YesNo_2DCombinedFiles:
                                     if FullPolGo >= 2:
                                         ASCIIlike_Output(Detector_Panels, Instrument, save_path, YesNo_2DFilesPerDetector, 'PolCorrUU', Sample, Config, PolCorrUU, PolCorrUU_Unc, QValues_All, Shadow_Mask)
                                         ASCIIlike_Output(Detector_Panels, Instrument, save_path, YesNo_2DFilesPerDetector, 'PolCorrDU', Sample, Config, PolCorrDU, PolCorrDU_Unc, QValues_All, Shadow_Mask)
@@ -1080,7 +1080,7 @@ def VSANS_MakeSlices_and_SaveASCII(Detector_Panels, Instrument, SampleApertureIn
                             UScaledData, UScaledData_Unc = AbsScale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, 'U', Sample, Config, BB_per_second, Solid_Angle, Plex, ScattCatalog, TransCatalog)
                             DScaledData, DScaledData_Unc = AbsScale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, 'D', Sample, Config, BB_per_second, Solid_Angle, Plex, ScattCatalog, TransCatalog)
                             if 'NA' not in UScaledData and 'NA' not in DScaledData:
-                                if YesNo_2DCombinedFiles > 0:
+                                if YesNo_2DCombinedFiles:
                                     representative_filenumber = ScattCatalog[Sample]['Config(s)'][Config]['U'][0]
                                     Qx, Qy, Qz, Q_total, Q_perp_unc, Q_parl_unc, InPlaneAngleMap, dimXX, dimYY, Shadow_Mask = QCalculation_AllDetectors(Detector_Panels, Instrument, SampleApertureInMM,SampleDescriptionKeywordsToExclude, input_path, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, representative_filenumber, Config, MidddlePixelBorderHorizontal, MidddlePixelBorderVertical, SectorCutAngles, Slices, AlignDet_Trans)
                                     QValues_All = {'QX':Qx,'QY':Qy,'QZ':Qz,'Q_total':Q_total,'Q_perp_unc':Q_perp_unc,'Q_parl_unc':Q_parl_unc}
@@ -1097,7 +1097,7 @@ def VSANS_MakeSlices_and_SaveASCII(Detector_Panels, Instrument, SampleApertureIn
 
                             UnpolScaledData, UnpolScaledData_Unc = AbsScale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, 'Unpol', Sample, Config, BB_per_second, Solid_Angle, Plex, ScattCatalog, TransCatalog)
                             if 'NA' not in UnpolScaledData:
-                                if YesNo_2DCombinedFiles > 0:
+                                if YesNo_2DCombinedFiles:
                                     representative_filenumber = ScattCatalog[Sample]['Config(s)'][Config]['Unpol'][0]
                                     Qx, Qy, Qz, Q_total, Q_perp_unc, Q_parl_unc, InPlaneAngleMap, dimXX, dimYY, Shadow_Mask = QCalculation_AllDetectors(Detector_Panels, Instrument, SampleApertureInMM,SampleDescriptionKeywordsToExclude, input_path, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, representative_filenumber, Config, MidddlePixelBorderHorizontal, MidddlePixelBorderVertical, SectorCutAngles, Slices, AlignDet_Trans)
                                     QValues_All = {'QX':Qx,'QY':Qy,'QZ':Qz,'Q_total':Q_total,'Q_perp_unc':Q_perp_unc,'Q_parl_unc':Q_parl_unc}
@@ -1121,7 +1121,7 @@ def vSANS_FullPolSlices(save_path, Detector_Panels, Instrument, SiMirror, Slices
     relevant_detectors = Detector_Panels
     if str(Config).find('CvB') != -1:
         relevant_detectors.append('B')
-        AverageQRanges = 0
+        AverageQRanges = False
 
     Corr = "PolCorr"
     if PolCorrDegree >= 2:
@@ -1178,7 +1178,7 @@ def vSANS_HalfPolSlices(Detector_Panels, Instrument, SiMirror, Slices, SectorCut
     relevant_detectors = Detector_Panels
     if str(Config).find('CvB') != -1:
         relevant_detectors.append('B')
-        AverageQRanges = 0
+        AverageQRanges = False
 
     PlotYesNo = 0
     BothSides = 1
@@ -1219,7 +1219,7 @@ def vSANS_UnpolSlices(Detector_Panels, Instrument, SiMirror, Slices, SectorCutAn
     relevant_detectors = Detector_Panels
     if str(Config).find('CvB') != -1:
         relevant_detectors.append('B')
-        AverageQRanges = 0
+        AverageQRanges = False
 
     PlotYesNo = 0
     BothSides = 1
@@ -1259,7 +1259,7 @@ def vSANS_SaveSlices_And_Results(StrucutrallyIsotropic, Slices, SectorCutAngles,
     AllFullPolResults = {}
     AllHalfPolResults = {}
     AllUnpolResults = {}
-    if He3Only_Check != 1:
+    if not He3Only_Check:
         for Config in Configs:
             representative_filenumber = Configs[Config]
             if representative_filenumber != 0:
@@ -1278,7 +1278,7 @@ def vSANS_SaveSlices_And_Results(StrucutrallyIsotropic, Slices, SectorCutAngles,
                                 HalfPolResults[Sample] = vSANS_ProcessHalfPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllHalfPolSlices[Config], Sample)
                             if Sample in AllUnpolSlices[Config]:
                                 UnpolResults[Sample] = vSANS_ProcessUnpolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllUnpolSlices[Config], Sample)
-                if AutoSubtractEmpty == 0:
+                if not AutoSubtractEmpty:
                     if 'Empty' in AllFullPolSlices[Config]:
                         FullPolResults['Empty'] = vSANS_ProcessFullPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllFullPolSlices[Config], 'Empty')
                     if 'Empty' in AllHalfPolSlices[Config]:
@@ -1430,9 +1430,9 @@ def vSANS_ProcessFullPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlot
         ax = plt.axes()
         ax.set_xscale("log")
         ax.set_yscale("log")
-        if YesNoSetPlotYRange > 0:
+        if YesNoSetPlotYRange:
             ax.set_ylim(bottom = PlotYmin, top = PlotYmax)
-        if YesNoSetPlotXRange > 0:
+        if YesNoSetPlotXRange:
             ax.set_xlim(left = PlotXmin, right = PlotXmax)
         ax.errorbar(Data_Cuts["Horz"]['Q'], Factor*M_Perp, yerr=Factor*M_Perp_Unc, fmt = 'r*', label='Sum(M_Perp^2), spin-flip')
         if Sample != 'Empty':
@@ -1447,7 +1447,7 @@ def vSANS_ProcessFullPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlot
         plt.title('Full-Pol Magnetic and Structural Scattering of {samp}'.format(samp=Sample))
         plt.legend()
         fig.savefig(save_path + 'ResultsFullPol_{samp},{cf}_{key}{width}{sub}.png'.format(samp=Sample, cf = Config,  key = PolType, width = Width, sub = Sub))
-        if YesNoShowPlots > 0:
+        if YesNoShowPlots:
             plt.show()
         plt.close()
 
@@ -1706,7 +1706,7 @@ def TwoDimToOneDim(Detector_Panels, Instrument, Key, Q_min, Q_max, Q_bins, QGrid
         "Q": Q_Values,
         "Shadow": np.ones_like(Q_Values),
     }
-    if AverageQRanges == 0:
+    if not AverageQRanges:
         '''Remove points overlapping in Q space before joining'''
         final_masks = {
             "B": np.logical_and(Histograms["B"]["nonzero_mask"], np.logical_not(Histograms["M"]["nonzero_mask"])),
@@ -1812,7 +1812,7 @@ def ASCIIlike_Output(Detector_Panels, Instrument, save_path, YesNo_2DFilesPerDet
             IntensityUnc = IntensityUnc.T
             DeltaInt = IntensityUnc.flatten()
             IntensityUnc = IntensityUnc.flatten()
-            if YesNo_2DFilesPerDetector > 0:
+            if YesNo_2DFilesPerDetector:
                 print('Outputting Unpol data into ASCII-like format for {det}, GroupID = {idnum} '.format(det=dshort, idnum=ID))
                 ASCII_like = np.array([QXData, QYData, Int, DeltaInt, QZData, QParlUnc, QPerpUnc, ShadowHolder])
                 ASCII_like = ASCII_like.T
@@ -1928,9 +1928,9 @@ def PlotFourCrossSections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSe
     ax = plt.axes()
     ax.set_xscale("log")
     ax.set_yscale("log")
-    if YesNoSetPlotYRange > 0:
+    if YesNoSetPlotYRange:
         ax.set_ylim(bottom = PlotYmin, top = PlotYmax)
-    if YesNoSetPlotXRange > 0:
+    if YesNoSetPlotXRange:
         ax.set_xlim(left = PlotXmin, right = PlotXmax)
     ax.errorbar(UU['Q'], UU['I'], yerr=UU['I_Unc'], fmt = 'b*', label='UU')
     ax.errorbar(DU['Q'], DU['I'], yerr=DU['I_Unc'], fmt = 'g*', label='DU')
@@ -1941,7 +1941,7 @@ def PlotFourCrossSections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSe
     plt.title('{slice_type}_{idnum},{cf}'.format(slice_type = Slice, idnum=Sample, cf = Config))
     plt.legend()
     fig.savefig(save_path + 'SliceFullPol_{samp},{cf}_{corr}{slice_type}.png'.format(samp=Sample, cf = Config, corr = Type, slice_type = Slice))
-    if YesNoShowPlots > 0:
+    if YesNoShowPlots:
         plt.show()
     plt.close()
 
@@ -1953,9 +1953,9 @@ def PlotFourCombinedCrossSections(save_path, YesNoShowPlots, YesNoSetPlotXRange,
     ax = plt.axes()
     ax.set_xscale("log")
     ax.set_yscale("log")
-    if YesNoSetPlotYRange > 0:
+    if YesNoSetPlotYRange:
         ax.set_ylim(bottom = PlotYmin, top = PlotYmax)
-    if YesNoSetPlotXRange > 0:
+    if YesNoSetPlotXRange:
         ax.set_xlim(left = PlotXmin, right = PlotXmax)
     ax.errorbar(Matrix['Q'], Matrix['UU'], yerr=Matrix['UU_Unc'], fmt = 'b*', label='UU')
     ax.errorbar(Matrix['Q'], Matrix['DU'], yerr=Matrix['DU_Unc'], fmt = 'g*', label='DU')
@@ -1966,7 +1966,7 @@ def PlotFourCombinedCrossSections(save_path, YesNoShowPlots, YesNoSetPlotXRange,
     plt.title('{slice_type}_{idnum},{cf}'.format(slice_type = Slice, idnum=Sample, cf = Config))
     plt.legend()
     fig.savefig(save_path + 'SliceFullPol_{samp},{cf}_{corr}{slice_type}{sub}.png'.format(samp=Sample, cf = Config, corr = Type, slice_type = Slice, sub = Sub))
-    if YesNoShowPlots > 0:
+    if YesNoShowPlots:
         plt.show()
     plt.close()
 
@@ -2190,11 +2190,11 @@ def AllSANS_PolCorrScattFiles(Detector_Panels, Instrument, UsePolCorr, input_pat
                         HE3_Efficiency[CrossSection_Index][:] += [ 0.0, 0.0, 0.0, UT]
 
         Prefactor = inv(Pol_Efficiency) #default for UsePolCorr == 1 and He3CorrectionType == 1
-        if UsePolCorr == 1 and He3CorrectionType == 0: #old way with X depol before sample and Y depol after sample = 1
+        if UsePolCorr and He3CorrectionType == 0: #old way with X depol before sample and Y depol after sample = 1
             Prefactor = inv(Pol_Efficiency_V2)
-        if UsePolCorr == 1 and He3CorrectionType == 2: #Y depol after sample and X depol before sample = 1
+        if UsePolCorr and He3CorrectionType == 2: #Y depol after sample and X depol before sample = 1
             Prefactor = inv(Pol_Efficiency_V3)
-        if UsePolCorr == 0:
+        if not UsePolCorr:
             Prefactor = inv(4.0*HE3_Efficiency)
             
         if str(Config).find('CvB') != -1:
@@ -2397,9 +2397,9 @@ def vSANS_ProcessFullPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlot
         ax = plt.axes()
         ax.set_xscale("log")
         ax.set_yscale("log")
-        if YesNoSetPlotYRange > 0:
+        if YesNoSetPlotYRange:
             ax.set_ylim(bottom = PlotYmin, top = PlotYmax)
-        if YesNoSetPlotXRange > 0:
+        if YesNoSetPlotXRange:
             ax.set_xlim(left = PlotXmin, right = PlotXmax)
         ax.errorbar(Data_Cuts["Horz"]['Q'], Factor*M_Perp, yerr=Factor*M_Perp_Unc, fmt = 'r*', label='Sum(M_Perp^2), spin-flip')
         if Sample != 'Empty':
@@ -2414,7 +2414,7 @@ def vSANS_ProcessFullPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlot
         plt.title('Full-Pol Magnetic and Structural Scattering of {samp}'.format(samp=Sample))
         plt.legend()
         fig.savefig(save_path + 'ResultsFullPol_{samp},{cf}_{key}{width}{sub}.png'.format(samp=Sample, cf = Config,  key = PolType, width = Width, sub = Sub))
-        if YesNoShowPlots > 0:
+        if YesNoShowPlots:
             plt.show()
         plt.close()
 
@@ -2645,9 +2645,9 @@ def vSANS_ProcessHalfPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlot
         ax = plt.axes()
         ax.set_xscale("log")
         ax.set_yscale("log")
-        if YesNoSetPlotYRange > 0:
+        if YesNoSetPlotYRange:
             ax.set_ylim(bottom = PlotYmin, top = PlotYmax)
-        if YesNoSetPlotXRange > 0:
+        if YesNoSetPlotXRange:
             ax.set_xlim(left = PlotXmin, right = PlotXmax)
         ax.errorbar(Horz_Data['Q'], M_Parl_Sub, yerr=M_Parl_Sub_Unc, fmt = 'b*', label='M_Parl (subtraction)')
         if Sample != 'Empty':
@@ -2658,7 +2658,7 @@ def vSANS_ProcessHalfPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlot
         plt.title('Half-Pol Magnetic and Structural Scattering of {samp}'.format(samp=Sample))
         plt.legend()
         fig.savefig(save_path + 'ResultsHalfPol_{samp},{cf}_{width}{sub}.png'.format(samp=Sample, cf = Config, width = Width, sub = Sub))
-        if YesNoShowPlots > 0:
+        if YesNoShowPlots:
             plt.show()
         plt.close()              
 
@@ -2848,9 +2848,9 @@ def vSANS_ProcessUnpolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots,
         ax = plt.axes()
         ax.set_xscale("log")
         ax.set_yscale("log")
-        if YesNoSetPlotYRange > 0:
+        if YesNoSetPlotYRange:
             ax.set_ylim(bottom = PlotYmin, top = PlotYmax)
-        if YesNoSetPlotXRange > 0:
+        if YesNoSetPlotXRange:
             ax.set_xlim(left = PlotXmin, right = PlotXmax)
         #if Sample != 'Empty':
             #ax.errorbar(Horz_Data['Q'], M_Parl_Sub, yerr=M_Parl_Sub_Unc, fmt = 'b*', label='M_Parl (subtraction)')
@@ -2862,7 +2862,7 @@ def vSANS_ProcessUnpolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots,
         plt.title('Unpol Magnetic and Structural Scattering of {samp}'.format(samp=Sample))
         plt.legend()
         fig.savefig(save_path + 'ResultsUnpol_{samp},{cf}_{width}{sub}.png'.format(samp=Sample, cf = Config, width = Width, sub = Sub))
-        if YesNoShowPlots > 0:
+        if YesNoShowPlots:
             plt.show()
         plt.close()              
 
@@ -3001,7 +3001,7 @@ def Annular_Average(Detector_Panels, Instrument, save_path, Sample, Config, InPl
     AverageQRanges = 1
     if str(Config).find('CvB') != -1:
         relevant_detectors.append('B')
-        AverageQRanges = 0
+        AverageQRanges = False
 
     Q_Mask = {}
     for dshort in relevant_detectors:
@@ -3054,7 +3054,7 @@ def vSANS_SaveSlices_And_Results(Slices, SectorCutAngles, save_path, YesNoShowPl
     AllFullPolResults = {}
     AllHalfPolResults = {}
     AllUnpolResults = {}
-    if He3Only_Check != 1:
+    if not He3Only_Check:
         for Config in Configs:
             representative_filenumber = Configs[Config]
             if representative_filenumber != 0:
@@ -3073,7 +3073,7 @@ def vSANS_SaveSlices_And_Results(Slices, SectorCutAngles, save_path, YesNoShowPl
                                 HalfPolResults[Sample] = vSANS_ProcessHalfPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllHalfPolSlices[Config], Sample)
                             if Sample in AllUnpolSlices[Config]:
                                 UnpolResults[Sample] = vSANS_ProcessUnpolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllUnpolSlices[Config], Sample)
-                if AutoSubtractEmpty == 0:
+                if not AutoSubtractEmpty:
                     if 'Empty' in AllFullPolSlices[Config]:
                         FullPolResults['Empty'] = vSANS_ProcessFullPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllFullPolSlices[Config], 'Empty')
                     if 'Empty' in AllHalfPolSlices[Config]:
@@ -3092,7 +3092,7 @@ def VSANS_CatergorizeSamplesAndBases(He3Only_Check, Configs, Sample_Bases, Sampl
     All_FullPol_BaseToSampleMap = {}
     All_HalfPol_BaseToSampleMap = {}
     All_Unpol_BaseToSampleMap = {}
-    if He3Only_Check != 1:
+    if not He3Only_Check:
         for Config in Configs:
             representative_filenumber = Configs[Config]
             if representative_filenumber != 0:
@@ -3139,7 +3139,7 @@ def VSANS_CatergorizeSamplesAndBases(He3Only_Check, Configs, Sample_Bases, Sampl
 
 def VSANS_SaveComparativePlots(Slices, ScattCatalog, SectorCutAngles, save_path, FullPol_BaseToSampleMap, HalfPol_BaseToSampleMap, Unpol_BaseToSampleMap, AllFullPolSlices, AllHalfPolSlices, AllUnpolSlices, AllFullPolResults, AllHalfPolResults, AllUnpolResults, Configs, He3Only_Check, CompareUnpolCirc, CompareHalfPolSumCirc, CompareFullPolSumCirc, CompareFullPolStruc, CompareFullPolMagnetism):
 
-    if He3Only_Check != 1:
+    if not He3Only_Check:
         for Config in Configs:
             representative_filenumber = Configs[Config]
             if representative_filenumber != 0:

@@ -13,17 +13,18 @@ from scipy import ndimage
 
 Instrument = 'VSANS' #Choices are 'VASNS', 'NG7SANS'
 SectorCutAngles = 15.0 #Default is typically 10.0 to 20.0 (degrees)
-StrucutrallyIsotropic = 0 #0 is the safe bet if you don't know if your sample is strucutrally isotropic
+StrucutrallyIsotropic = False #False is the safe bet if you don't know if your sample is structurally isotropic
 
 #********************************************************************
 #**** Run with defaults, unless have reason to do otherwise *********
 #********************************************************************
 
+'''
 TempDiffAllowedForSharingTrans = 20.0 #Max temperature difference in K to fill in for missing transmission files
-AutoSubtractEmpty = 1 #Default is 1 for yes; 0 for no. Selecting 1 doesn't cause any issues even if no empties are available.
-YesNoRenameEmpties = 1 #0 = No; 1 = Yes and will simply rename to Empty
-UseMTCirc = 1 #Default is 1 for yes, 0 for no (which instead subtracts sector-by-sector MT from data)
-He3Only_Check = 0 #Default 0 = No (runs full reduction), 1 = Yes (for helium team's use)
+AutoSubtractEmpty = True #Default is True for yes; False for no. Selecting True doesn't cause any issues even if no empties are available.
+YesNoRenameEmpties = True #False = No; True = Yes and will simply rename to Empty
+UseMTCirc = True #Default is True for yes, False for no (which instead subtracts sector-by-sector MT from data)
+He3Only_Check = False #Default False = No (runs full reduction), True = Yes (for helium team's use)
 Absolute_Q_min = 0.005 #Default 0; Will take the maximum of Q_min_Calc from all detectors and this value
 Absolute_Q_max = 0.12 #Default 0.6; Will take the minimum of Q_max_Calc from all detectors and this value
 
@@ -40,44 +41,45 @@ Min_Trans_Filenumber = Min_Filenumber
 Max_Trans_Filenumber = Max_Filenumber
 SampleDescriptionKeywordsToExclude = []
 
-YesNoSetPlotXRange = 0 #Default is 0 (no), 1 = yes
-YesNoSetPlotYRange = 0 #Default is 0 (no), 1 = yes
-PlotXmin = 0.015 #Only used if YesNoSetPlotXRange = 1
-PlotXmax = 0.115 #Only used if YesNoSetPlotXRange = 1
-PlotYmin = 1E-4 #Only used if YesNoSetPlotYRange = 1
-PlotYmax = 1 #Only used if YesNoSetPlotYRange = 1
+YesNoSetPlotXRange = False #Default is False (no), True = yes
+YesNoSetPlotYRange = False #Default is False (no), True = yes
+PlotXmin = 0.015 #Only used if YesNoSetPlotXRange
+PlotXmax = 0.115 #Only used if YesNoSetPlotXRange
+PlotYmin = 1E-4 #Only used if YesNoSetPlotYRange
+PlotYmax = 1 #Only used if YesNoSetPlotYRange
 
 #The following paramters should rarely be touched (just initialize this cell)
 SampleApertureInMM = True #Override in case sample aperture entered in cm rather than mm
-PreSebtractOpen = 0 #Default is 0 for no; 1 for yes. Subtracts trans-scaled open (if available) from pol-full in attempt to remove main beam spillover.
-Calc_Q_From_Trans = 1 #Default is 1 for yes; 0 for no
-AverageQRanges = 0 #0 for no; 1 for yes
-YesNoShowPlots = 0 #0 = No and simply saves plots; 1 = yes and displays plots when code is run
-CompareUnpolCirc = 1
-CompareHalfPolSumCirc = 1
-CompareFullPolSumCirc = 1
-CompareFullPolStruc = 1
-CompareFullPolMagnetism = 1
-YesNo_2DCombinedFiles = 0 #Default is 0 (no), 1 = yes which can be read using SasView
-YesNo_2DFilesPerDetector = 0 #Default is 0 (no), 1 = yes; Note all detectors will be summed after beamline masking applied and can be read by SasView 4.2.2 (and higher?)
+PreSebtractOpen = False #Default is False for no; True for yes. Subtracts trans-scaled open (if available) from pol-full in attempt to remove main beam spillover.
+Calc_Q_From_Trans = True #Default is True for yes; False for no
+AverageQRanges = False #False for no; True for yes
+YesNoShowPlots = False #False = No and simply saves plots; True = yes and displays plots when code is run
+CompareUnpolCirc = True
+CompareHalfPolSumCirc = True
+CompareFullPolSumCirc = True
+CompareFullPolStruc = True
+CompareFullPolMagnetism = True
+YesNo_2DCombinedFiles = False #Default is False (no), True = yes which can be read using SasView
+YesNo_2DFilesPerDetector = False #Default is False (no), True = yes; Note all detectors will be summed after beamline masking applied and can be read by SasView 4.2.2 (and higher?)
 MidddlePixelBorderHorizontal = 4 #Default = 4
 MidddlePixelBorderVertical = 4 #Default = 4
-ConvertHighResToSubset = 1 #Default = 1 for yes (uses only a small subset of the million plus pixels for approximately an 18 x's savings in computing power).
+ConvertHighResToSubset = True #Default = True for yes (uses only a small subset of the million plus pixels for approximately an 18 x's savings in computing power).
 HighResGain = 100.0
-UsePolCorr = 1 #Default is 1 to pol-correct full-pol data, 0 means no and will only correct for 3He transmission as a function of time.
-He3CorrectionType = 1 #0 for chi, 1 for chi = upsilon (only active if YesNoManualHe3Entry = 1), 2 for upsilon
-YesNoBypassBestGuessPSM = 0 #Default is 1, will bypass to higher (or the highest) PSM value if one (or more) is/are measured
+UsePolCorr = True #Default is True to pol-correct full-pol data, False means no and will only correct for 3He transmission as a function of time.
+He3CorrectionType = 1 #0 for chi, 1 for chi = upsilon (only active if YesNoManualHe3Entry), 2 for upsilon
+YesNoBypassBestGuessPSM = False #Default is False, will bypass to higher (or the highest) PSM value if one (or more) is/are measured
 PSM_Guess = 0.9985 #0.9985 is good for 4 guides, 5.5 angstroms
 Minimum_PSM = 0.01
-YesNoManualHe3Entry = 0 #0 for no (default), 1 for yes; should not be needed for data taken after July 2019 if He3 cells are properly registered
-New_HE3_Files = [77070, 77297, 77566] #Default is []; These would be the starting files for each new cell IF YesNoManualHe3Entry = 1
-MuValues = [3.105, 3.374, 3.105] #Default is []; Values only used IF YesNoManualHe3Entry = 1; example [3.374, 3.105]=[Fras, Bur]; should not be needed after July 2019
-TeValues = [0.86, 0.86, 0.86] #Default is []; Values only used IF YesNoManualHe3Entry = 1; example [0.86, 0.86]=[Fras, Bur]; should not be needed after July 2019
+YesNoManualHe3Entry = False #False for no (default), True for yes; should not be needed for data taken after July 2019 if He3 cells are properly registered
+New_HE3_Files = [] #[77070, 77297, 77566] #Default is []; These would be the starting files for each new cell IF YesNoManualHe3Entry
+MuValues = [] #[3.105, 3.374, 3.105] #Default is []; Values only used IF YesNoManualHe3Entry; example [3.374, 3.105]=[Fras, Bur]; should not be needed after July 2019
+TeValues = [] #[0.86, 0.86, 0.86] #Default is []; Values only used IF YesNoManualHe3Entry; example [0.86, 0.86]=[Fras, Bur]; should not be needed after July 2019
 #High Res Detector is linked to then Converging Beam option (at 6.7 angstroms)
 HighResMinX = 240 #Default 240
 HighResMaxX = 474 #Default 474
 HighResMinY = 667 #Default 667
 HighResMaxY = 917 #Default 917
+'''
 
 def instrument_selection(Instrument = 'VSANS'):
 
@@ -249,7 +251,7 @@ def AllSANS_PurposeIntentPolarizationSolenoid(Detector_Panels, Instrument, UsePo
         elif 'DOWN' in FrontPolDirection and 'UP' in BackPolDirection:
             PolarizationState = 'DU'
 
-        if UsePolCorr > 0:
+        if UsePolCorr:
             Type = str(f['entry/sample/description'][()])
             if Type[-6:-2] == 'S_UU' or Type[-6:-2] == 'T_UU':
                 PolarizationState = 'UU'
@@ -290,11 +292,37 @@ def AllSANS_Config_ID(Detector_Panels, Instrument, input_path, filenumber):
 
     return Configuration_ID
 
-def sans_sort_data_automatic(Detector_Panels, Instrument, UsePolCorr, SampleDescriptionKeywordsToExclude, TransPanel, input_path, YesNoManualHe3Entry, New_HE3_Files, MuValues, TeValues, Excluded_Filenumbers, Min_Filenumber, Max_Filenumber, Min_Scatt_Filenumber, Max_Scatt_Filenumber, Min_Trans_Filenumber, Max_Trans_Filenumber, ReAssignBlockBeamIntent, ReAssignEmptyIntent, ReAssignOpenIntent, ReAssignSampleIntent, YesNoRenameEmpties):
+def sans_sort_data_automatic(Detector_Panels, input_path, Instrument='VSANS', UsePolCorr=True, SampleDescriptionKeywordsToExclude=None, TransPanel=None, YesNoManualHe3Entry=False, New_HE3_Files=None, MuValues=None, TeValues=None, Excluded_Filenumbers=None, Min_Filenumber=0, Max_Filenumber=1000000, Min_Scatt_Filenumber=0, Max_Scatt_Filenumber=1000000, Min_Trans_Filenumber=0, Max_Trans_Filenumber=1000000, ReAssignBlockBeamIntent=None, ReAssignEmptyIntent=None, ReAssignOpenIntent=None, ReAssignSampleIntent=None, YesNoRenameEmpties=True):
     #Uses get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
     #Uses AllSANS_Sample_BaseNameDescrip(Detector_Panels, Instrument, input_path, filenumber)
     #Uses AllSANS_PurposeIntentPolarizationSolenoid(Detector_Panels, Instrument, UsePolCorr, input_path, filenumber)
     #Uses AllSANS_Config_ID(Detector_Panels, Instrument, input_path, filenumber)
+    
+    # Set defaults for None parameters from module-level values
+    if SampleDescriptionKeywordsToExclude is None:
+        SampleDescriptionKeywordsToExclude = []
+    if New_HE3_Files is None:
+        New_HE3_Files = []
+    if MuValues is None:
+        MuValues = []
+    if TeValues is None:
+        TeValues = []
+    if Excluded_Filenumbers is None:
+        Excluded_Filenumbers = []
+    if ReAssignBlockBeamIntent is None:
+        ReAssignBlockBeamIntent = []
+    if ReAssignEmptyIntent is None:
+        ReAssignEmptyIntent = []
+    if ReAssignOpenIntent is None:
+        ReAssignOpenIntent = []
+    if ReAssignSampleIntent is None:
+        ReAssignSampleIntent = []
+    if TransPanel is None:
+        # Derive TransPanel from Instrument
+        if 'VSANS' in Instrument:
+            TransPanel = 'MR'
+        elif 'NG7SANS' in Instrument:
+            TransPanel = 'Full_Panel'
     
     Sample_Names = {}
     Sample_Bases = {}
@@ -341,7 +369,7 @@ def sans_sort_data_automatic(Detector_Panels, Instrument, UsePolCorr, SampleDesc
                         Intent = 'Open'
                     if filenumber in ReAssignSampleIntent:
                         Intent = 'Sample'
-                    if YesNoRenameEmpties >= 1 and 'Empty' in Intent:
+                    if YesNoRenameEmpties and 'Empty' in Intent:
                         Sample_Base = 'Empty'
                         Sample_Name = 'Empty'
                     
@@ -551,7 +579,7 @@ def sans_sort_data_automatic(Detector_Panels, Instrument, UsePolCorr, SampleDesc
                                         Pol_Trans[Sample_Name]['Config'].append(Config)
 
                         elif 'HE3' in Purpose:
-                            if YesNoManualHe3Entry == 1:
+                            if YesNoManualHe3Entry:
                                 if filenumber in New_HE3_Files:
                                     ScaledOpacity = MuValues[CellIdentifier]
                                     TE = TeValues[CellIdentifier]
@@ -630,7 +658,13 @@ def sans_sort_data_automatic(Detector_Panels, Instrument, UsePolCorr, SampleDesc
                                             
     return Sample_Names, Sample_Bases, Configs, BlockBeam, Scatt, Trans, Pol_Trans, AlignDet_Trans, HE3_Trans, start_number, FileNumberList
 
-def AllSANS_ShareAlignDetTransCatalog(Detector_Panels, Instrument, TempDiffAllowedForSharingTrans, AlignDet_Trans, Scatt):
+def AllSANS_ShareAlignDetTransCatalog(Detector_Panels, Instrument='VSANS', TempDiffAllowedForSharingTrans=20.0, AlignDet_Trans=None, Scatt=None):
+    # Set defaults for None parameters
+    if AlignDet_Trans is None:
+        AlignDet_Trans = {}
+    if Scatt is None:
+        Scatt = {}
+    
     for Sample in Scatt:
         for Config in Scatt[Sample]['Config(s)']:
             if Sample not in AlignDet_Trans:
@@ -694,7 +728,13 @@ def AllSANS_ShareAlignDetTransCatalog(Detector_Panels, Instrument, TempDiffAllow
                                             AlignDet_Trans[Sample]['Config(s)'][Config]['MR_Pol_Files'] = [AlignDet_Trans[Sample2]['Config(s)'][Config2]['MR_Pol_Files'][0]]
     return AlignDet_Trans
 
-def AllSANS_ShareSampleBaseTransCatalog(Detector_Panels, Instrument, Trans, Scatt):
+def AllSANS_ShareSampleBaseTransCatalog(Detector_Panels, Instrument='VSANS', Trans=None, Scatt=None):
+    # Set defaults for None parameters
+    if Trans is None:
+        Trans = {}
+    if Scatt is None:
+        Scatt = {}
+    
     for Sample in Scatt:
         for Config in Scatt[Sample]['Config(s)']:
             if Sample not in Trans:
@@ -744,8 +784,11 @@ def AllSANS_ShareSampleBaseTransCatalog(Detector_Panels, Instrument, Trans, Scat
                                 Trans[Sample]['Config(s)'][Config]['U_Files'] = [UpAssociatedTrans[Config][i]]
     return Trans
 
-def AllSANS_ShareEmptyPolBeamScattCatalog(Scatt):
-
+def AllSANS_ShareEmptyPolBeamScattCatalog(Scatt=None):
+    # Set defaults for None parameters
+    if Scatt is None:
+        Scatt = {}
+    
     for Sample_Name in Scatt:
         if str(Scatt[Sample_Name]['Intent']).find("Empty") != -1:
             for CF in Scatt[Sample_Name]['Config(s)']:
@@ -769,7 +812,7 @@ def AllSANS_ShareEmptyPolBeamScattCatalog(Scatt):
                     
     return Scatt
 
-def VSANS_SharePolTransCatalog(Detector_Panels, Instrument, SampleDescriptionKeywordsToExclude, TempDiffAllowedForSharingTrans, Pol_Trans, Scatt, input_path):
+def VSANS_SharePolTransCatalog(Detector_Panels, Pol_Trans, Scatt, input_path, Instrument = 'VSANS', SampleDescriptionKeywordsToExclude = [], TempDiffAllowedForSharingTrans = 20.0):
 
     for Sample in Scatt:
         for Config in Scatt[Sample]['Config(s)']:
@@ -1080,11 +1123,12 @@ def AllSANS_AttenuatorTable(Instrument, wavelength, attenuation):
             
     return Trans
 
-def AllSANS_ProcessHe3TransCatalog(Detector_Panels, Instrument, input_path, HE3_Trans, BlockBeam, DetectorPanel):
-    #Uses AllSANS_CalcABSTrans_BlockBeamList(Detector_Panels, Instrument, input_path, trans_filenumber, BlockBeam, DetectorPanel) which uses
-    #AllSANS_MakeTransMask(Detector_Panels, Instrument, input_path, filenumber, Config, DetectorPanel) and
-    #AllSANS_BlockedBeamCountsPerSecond_ListOfFiles(Detector_Panels, Instrument, input_path, filelist, Config) and 
-    #AllSANS_AttenuatorTable(Instrument, wavelength, attenuation)
+def AllSANS_ProcessHe3TransCatalog(Detector_Panels, Instrument='VSANS', input_path=None, HE3_Trans=None, BlockBeam=None, DetectorPanel=None):
+    # Set defaults for None parameters
+    if HE3_Trans is None:
+        HE3_Trans = {}
+    if BlockBeam is None:
+        BlockBeam = {}
     
     for Cell in HE3_Trans:
         if 'Elasped_time' in HE3_Trans[Cell]:
@@ -1108,7 +1152,13 @@ def AllSANS_ProcessHe3TransCatalog(Detector_Panels, Instrument, input_path, HE3_
                 counter += 1 
     return HE3_Trans
 
-def AllSANS_ProcessPolTransCatalog(Detector_Panels, Instrument, input_path, Pol_Trans, BlockBeam, DetectorPanel):
+def AllSANS_ProcessPolTransCatalog(Detector_Panels, Instrument='VSANS', input_path=None, Pol_Trans=None, BlockBeam=None, DetectorPanel=None):
+    # Set defaults for None parameters
+    if Pol_Trans is None:
+        Pol_Trans = {}
+    if BlockBeam is None:
+        BlockBeam = {}
+    
     #Uses AllSANS_CalcABSTrans_BlockBeamList(Detector_Panels, Instrument, input_path, trans_filenumber, BlockBeam, DetectorPanel) which uses
     #AllSANS_MakeTransMask(Detector_Panels, Instrument, input_path, filenumber, Config, DetectorPanel) and
     #AllSANS_BlockedBeamCountsPerSecond_ListOfFiles(Detector_Panels, Instrument, input_path, filelist, Config) and 
@@ -1148,7 +1198,13 @@ def AllSANS_ProcessPolTransCatalog(Detector_Panels, Instrument, input_path, Pol_
                 counter += 1   
     return Pol_Trans
 
-def AllSANS_ProcessTransCatalog(Detector_Panels, Instrument, input_path, Trans, BlockBeam, DetectorPanel):
+def AllSANS_ProcessTransCatalog(Detector_Panels, Instrument='VSANS', input_path=None, Trans=None, BlockBeam=None, DetectorPanel=None):
+    # Set defaults for None parameters
+    if Trans is None:
+        Trans = {}
+    if BlockBeam is None:
+        BlockBeam = {}
+    
     #Uses AllSANS_CalcABSTrans_BlockBeamList(Detector_Panels, Instrument, input_path, trans_filenumber, BlockBeam, DetectorPanel) which uses
     #AllSANS_MakeTransMask(Detector_Panels, Instrument, input_path, filenumber, Config, DetectorPanel) and
     #AllSANS_BlockedBeamCountsPerSecond_ListOfFiles(Detector_Panels, Instrument, input_path, filelist, Config) and 
@@ -1178,7 +1234,7 @@ def AllSANS_ProcessTransCatalog(Detector_Panels, Instrument, input_path, Trans, 
                             Trans[Samp]['Config(s)'][Config]['U_Trans_Cts'].append(Halfpol_trans)
     return Trans
 
-def Plex_File(Detector_Panels, Instrument, input_path, start_number, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain):
+def Plex_File(Detector_Panels, input_path, start_number, Instrument='VSANS', HighResMinX=240, HighResMaxX=474, HighResMinY=667, HighResMaxY=917, ConvertHighResToSubset=True, HighResGain=100.0):
 
     PlexData = {}
     filename = '0'
@@ -1194,7 +1250,7 @@ def Plex_File(Detector_Panels, Instrument, input_path, start_number, HighResMinX
                 data = np.array(f['entry/instrument/detector_{ds}/data'.format(ds=dshort)])
             elif 'NG7SANS' in Instrument:
                 data = np.array(f['entry/instrument/detector/data'])
-            if ConvertHighResToSubset > 0:
+            if ConvertHighResToSubset:
                 if dshort == 'B':
                     data_subset = data[HighResMinX:HighResMaxX+1,HighResMinY:HighResMaxY+1]
                     PlexData[dshort] = data_subset
@@ -1227,7 +1283,7 @@ def Plex_File(Detector_Panels, Instrument, input_path, start_number, HighResMinX
                     data = np.zeros((x_size, y_size))
                     data_filler = np.ones_like(data)
                                           
-                if ConvertHighResToSubset > 0:
+                if ConvertHighResToSubset:
                     if dshort == 'B':
                         data_subset = data_filler[HighResMinX:HighResMaxX+1,HighResMinY:HighResMaxY+1]
                         PlexData[dshort] = data_subset
