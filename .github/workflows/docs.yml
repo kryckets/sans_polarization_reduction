@@ -1,0 +1,36 @@
+name: Convert Notebooks to HTML
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**/*.ipynb'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      
+      - name: Install dependencies
+        run: |
+          pip install nbconvert jupyter
+      
+      - name: Convert notebooks to HTML
+        run: |
+          for notebook in docs/*.ipynb; do
+            jupyter nbconvert --to html "$notebook" --output-dir=docs/
+          done
+      
+      - name: Commit and push HTML files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add docs/*.html
+          git commit -m "Convert notebooks to HTML" || echo "No changes to commit"
+          git push
