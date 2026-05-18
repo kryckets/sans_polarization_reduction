@@ -13,17 +13,17 @@ from scipy import ndimage
 
 Instrument = 'VSANS' #Choices are 'VASNS', 'NG7SANS'
 SectorCutAngles = 15.0 #Default is typically 10.0 to 20.0 (degrees)
-StrucutrallyIsotropic = 0 #0 is the safe bet if you don't know if your sample is strucutrally isotropic
+StrucutrallyIsotropic = False #False is the safe bet if you don't know if your sample is structurally isotropic
 
 #********************************************************************
 #**** Run with defaults, unless have reason to do otherwise *********
 #********************************************************************
 
 TempDiffAllowedForSharingTrans = 20.0 #Max temperature difference in K to fill in for missing transmission files
-AutoSubtractEmpty = 1 #Default is 1 for yes; 0 for no. Selecting 1 doesn't cause any issues even if no empties are available.
-YesNoRenameEmpties = 1 #0 = No; 1 = Yes and will simply rename to Empty
-UseMTCirc = 1 #Default is 1 for yes, 0 for no (which instead subtracts sector-by-sector MT from data)
-He3Only_Check = 0 #Default 0 = No (runs full reduction), 1 = Yes (for helium team's use)
+AutoSubtractEmpty = True #Default is True for yes; False for no. Selecting True doesn't cause any issues even if no empties are available.
+YesNoRenameEmpties = True #False = No; True = Yes and will simply rename to Empty
+UseMTCirc = True #Default is True for yes, False for no (which instead subtracts sector-by-sector MT from data)
+He3Only_Check = False #Default False = No (runs full reduction), True = Yes (for helium team's use)
 Absolute_Q_min = 0.005 #Default 0; Will take the maximum of Q_min_Calc from all detectors and this value
 Absolute_Q_max = 0.12 #Default 0.6; Will take the minimum of Q_max_Calc from all detectors and this value
 
@@ -40,39 +40,39 @@ Min_Trans_Filenumber = Min_Filenumber
 Max_Trans_Filenumber = Max_Filenumber
 SampleDescriptionKeywordsToExclude = []
 
-YesNoSetPlotXRange = 0 #Default is 0 (no), 1 = yes
-YesNoSetPlotYRange = 0 #Default is 0 (no), 1 = yes
-PlotXmin = 0.015 #Only used if YesNoSetPlotXRange = 1
-PlotXmax = 0.115 #Only used if YesNoSetPlotXRange = 1
-PlotYmin = 1E-4 #Only used if YesNoSetPlotYRange = 1
-PlotYmax = 1 #Only used if YesNoSetPlotYRange = 1
+YesNoSetPlotXRange = False #Default is False (no), True = yes
+YesNoSetPlotYRange = False #Default is False (no), True = yes
+PlotXmin = 0.015 #Only used if YesNoSetPlotXRange
+PlotXmax = 0.115 #Only used if YesNoSetPlotXRange
+PlotYmin = 1E-4 #Only used if YesNoSetPlotYRange
+PlotYmax = 1 #Only used if YesNoSetPlotYRange
 
 #The following paramters should rarely be touched (just initialize this cell)
 SampleApertureInMM = True #Override in case sample aperture entered in cm rather than mm
-PreSebtractOpen = 0 #Default is 0 for no; 1 for yes. Subtracts trans-scaled open (if available) from pol-full in attempt to remove main beam spillover.
-Calc_Q_From_Trans = 1 #Default is 1 for yes; 0 for no
-AverageQRanges = 0 #0 for no; 1 for yes
-YesNoShowPlots = 0 #0 = No and simply saves plots; 1 = yes and displays plots when code is run
-CompareUnpolCirc = 1
-CompareHalfPolSumCirc = 1
-CompareFullPolSumCirc = 1
-CompareFullPolStruc = 1
-CompareFullPolMagnetism = 1
-YesNo_2DCombinedFiles = 0 #Default is 0 (no), 1 = yes which can be read using SasView
-YesNo_2DFilesPerDetector = 0 #Default is 0 (no), 1 = yes; Note all detectors will be summed after beamline masking applied and can be read by SasView 4.2.2 (and higher?)
+PreSebtractOpen = False #Default is False for no; True for yes. Subtracts trans-scaled open (if available) from pol-full in attempt to remove main beam spillover.
+Calc_Q_From_Trans = True #Default is True for yes; False for no
+AverageQRanges = False #False for no; True for yes
+YesNoShowPlots = False #False = No and simply saves plots; True = yes and displays plots when code is run
+CompareUnpolCirc = True
+CompareHalfPolSumCirc = True
+CompareFullPolSumCirc = True
+CompareFullPolStruc = True
+CompareFullPolMagnetism = True
+YesNo_2DCombinedFiles = False #Default is False (no), True = yes which can be read using SasView
+YesNo_2DFilesPerDetector = False #Default is False (no), True = yes; Note all detectors will be summed after beamline masking applied and can be read by SasView 4.2.2 (and higher?)
 MidddlePixelBorderHorizontal = 4 #Default = 4
 MidddlePixelBorderVertical = 4 #Default = 4
-ConvertHighResToSubset = 1 #Default = 1 for yes (uses only a small subset of the million plus pixels for approximately an 18 x's savings in computing power).
+ConvertHighResToSubset = True #Default = True for yes (uses only a small subset of the million plus pixels for approximately an 18 x's savings in computing power).
 HighResGain = 100.0
-UsePolCorr = 1 #Default is 1 to pol-correct full-pol data, 0 means no and will only correct for 3He transmission as a function of time.
-He3CorrectionType = 1 #0 for chi, 1 for chi = upsilon (only active if YesNoManualHe3Entry = 1), 2 for upsilon
-YesNoBypassBestGuessPSM = 0 #Default is 1, will bypass to higher (or the highest) PSM value if one (or more) is/are measured
+UsePolCorr = True #Default is True to pol-correct full-pol data, False means no and will only correct for 3He transmission as a function of time.
+He3CorrectionType = 1 #0 for chi, 1 for chi = upsilon (only active if YesNoManualHe3Entry), 2 for upsilon
+YesNoBypassBestGuessPSM = False #Default is False, will bypass to higher (or the highest) PSM value if one (or more) is/are measured
 PSM_Guess = 0.9985 #0.9985 is good for 4 guides, 5.5 angstroms
 Minimum_PSM = 0.01
-YesNoManualHe3Entry = 0 #0 for no (default), 1 for yes; should not be needed for data taken after July 2019 if He3 cells are properly registered
-New_HE3_Files = [77070, 77297, 77566] #Default is []; These would be the starting files for each new cell IF YesNoManualHe3Entry = 1
-MuValues = [3.105, 3.374, 3.105] #Default is []; Values only used IF YesNoManualHe3Entry = 1; example [3.374, 3.105]=[Fras, Bur]; should not be needed after July 2019
-TeValues = [0.86, 0.86, 0.86] #Default is []; Values only used IF YesNoManualHe3Entry = 1; example [0.86, 0.86]=[Fras, Bur]; should not be needed after July 2019
+YesNoManualHe3Entry = False #False for no (default), True for yes; should not be needed for data taken after July 2019 if He3 cells are properly registered
+New_HE3_Files = [77070, 77297, 77566] #Default is []; These would be the starting files for each new cell IF YesNoManualHe3Entry
+MuValues = [3.105, 3.374, 3.105] #Default is []; Values only used IF YesNoManualHe3Entry; example [3.374, 3.105]=[Fras, Bur]; should not be needed after July 2019
+TeValues = [0.86, 0.86, 0.86] #Default is []; Values only used IF YesNoManualHe3Entry; example [0.86, 0.86]=[Fras, Bur]; should not be needed after July 2019
 #High Res Detector is linked to then Converging Beam option (at 6.7 angstroms)
 HighResMinX = 240 #Default 240
 HighResMaxX = 474 #Default 474
@@ -249,7 +249,7 @@ def AllSANS_PurposeIntentPolarizationSolenoid(Detector_Panels, Instrument, UsePo
         elif 'DOWN' in FrontPolDirection and 'UP' in BackPolDirection:
             PolarizationState = 'DU'
 
-        if UsePolCorr > 0:
+        if UsePolCorr:
             Type = str(f['entry/sample/description'][()])
             if Type[-6:-2] == 'S_UU' or Type[-6:-2] == 'T_UU':
                 PolarizationState = 'UU'
@@ -341,7 +341,7 @@ def sans_sort_data_automatic(Detector_Panels, Instrument, UsePolCorr, SampleDesc
                         Intent = 'Open'
                     if filenumber in ReAssignSampleIntent:
                         Intent = 'Sample'
-                    if YesNoRenameEmpties >= 1 and 'Empty' in Intent:
+                    if YesNoRenameEmpties and 'Empty' in Intent:
                         Sample_Base = 'Empty'
                         Sample_Name = 'Empty'
                     
@@ -551,7 +551,7 @@ def sans_sort_data_automatic(Detector_Panels, Instrument, UsePolCorr, SampleDesc
                                         Pol_Trans[Sample_Name]['Config'].append(Config)
 
                         elif 'HE3' in Purpose:
-                            if YesNoManualHe3Entry == 1:
+                            if YesNoManualHe3Entry:
                                 if filenumber in New_HE3_Files:
                                     ScaledOpacity = MuValues[CellIdentifier]
                                     TE = TeValues[CellIdentifier]
@@ -1194,7 +1194,7 @@ def Plex_File(Detector_Panels, Instrument, input_path, start_number, HighResMinX
                 data = np.array(f['entry/instrument/detector_{ds}/data'.format(ds=dshort)])
             elif 'NG7SANS' in Instrument:
                 data = np.array(f['entry/instrument/detector/data'])
-            if ConvertHighResToSubset > 0:
+            if ConvertHighResToSubset:
                 if dshort == 'B':
                     data_subset = data[HighResMinX:HighResMaxX+1,HighResMinY:HighResMaxY+1]
                     PlexData[dshort] = data_subset
@@ -1227,7 +1227,7 @@ def Plex_File(Detector_Panels, Instrument, input_path, start_number, HighResMinX
                     data = np.zeros((x_size, y_size))
                     data_filler = np.ones_like(data)
                                           
-                if ConvertHighResToSubset > 0:
+                if ConvertHighResToSubset:
                     if dshort == 'B':
                         data_subset = data_filler[HighResMinX:HighResMaxX+1,HighResMinY:HighResMaxY+1]
                         PlexData[dshort] = data_subset
