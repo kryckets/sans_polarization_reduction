@@ -653,7 +653,7 @@ def sans_sort_data_automatic(Detector_Panels, input_path, Instrument='VSANS', Us
 
     return Sample_Names, Sample_Bases, Configs, BlockBeam, Scatt, Trans, Pol_Trans, AlignDet_Trans, HE3_Trans, start_number, FileNumberList
 
-def sans_share_align_det_trans_catalog(Detector_Panels, Instrument='VSANS', TempDiffAllowedForSharingTrans=20.0, AlignDet_Trans=None, Scatt=None):
+def sans_share_align_det_trans_catalog(TempDiffAllowedForSharingTrans=20.0, AlignDet_Trans=None, Scatt=None):
     # Set defaults for None parameters
     if AlignDet_Trans is None:
         AlignDet_Trans = {}
@@ -723,7 +723,7 @@ def sans_share_align_det_trans_catalog(Detector_Panels, Instrument='VSANS', Temp
                                             AlignDet_Trans[Sample]['Config(s)'][Config]['MR_Pol_Files'] = [AlignDet_Trans[Sample2]['Config(s)'][Config2]['MR_Pol_Files'][0]]
     return AlignDet_Trans
 
-def sans_share_sample_base_trans_catalog(Detector_Panels, Instrument='VSANS', Trans=None, Scatt=None):
+def sans_share_sample_base_trans_catalog(Trans=None, Scatt=None):
     # Set defaults for None parameters
     if Trans is None:
         Trans = {}
@@ -1394,4 +1394,226 @@ def he3_decay_curves(save_path, HE3_Trans):
             plt.close()
 
     return HE3_Cell_Summary
+
+def he3_pol_at_given_time(entry_time, HE3_Cell_Summary):
+    '''
+    #Predefine HE3_Cell_Summary[HE3_Trans[entry]['Insert_time']] = {'Atomic_P0' : P0, 'Gamma(hours)' : gamma, 'Mu' : Mu, 'Te' : Te}
+    #He3Decay_func must be predefined
+    '''
+    counter = 0
+    for time in HE3_Cell_Summary:
+        if counter == 0:
+            holder_time = time
+            counter += 1
+        if entry_time >= time:
+            holder_time = time
+        if entry_time < time:
+            break
+    delta_time = entry_time - holder_time     
+    P0 = HE3_Cell_Summary[holder_time]['Atomic_P0']
+    gamma = HE3_Cell_Summary[holder_time]['Gamma(hours)']
+    Mu = HE3_Cell_Summary[holder_time]['Mu']
+    Te = HE3_Cell_Summary[holder_time]['Te']
+    AtomicPol = P0 * np.exp(-delta_time / gamma)
+    NeutronPol = np.tanh(Mu * AtomicPol)
+    UnpolHE3Trans = Te * np.exp(-Mu)*np.cosh(Mu * AtomicPol)
+    T_MAJ = Te * np.exp(-Mu*(1.0 - AtomicPol))
+    T_MIN = Te * np.exp(-Mu*(1.0 + AtomicPol))
+        
+    return NeutronPol, UnpolHE3Trans, T_MAJ, T_MIN
+
+def sans_polarization_supermirror_and_flipper(Pol_Trans, HE3_Cell_Summary, UsePolCorr):
+    #Uses time of measurement from Pol_Trans and cell history from HE3_Cell_Summary.
+    #Saves PSM and PF values into Pol_Trans.
+    #Uses prefdefined he3_pol_at_given_time function.
+    #Note: The vSANS RF Flipper polarization has been measured at 1.0 and is, thus, set.
+    
+    for ID in Pol_Trans:
+        if 'Meas_Time' in Pol_Trans[ID]['T_UU']:
+            for Time in Pol_Trans[ID]['T_UU']['Meas_Time']:
+                NP, UT, T_MAJ, T_MIN = he3_pol_at_given_time(Time, HE3_Cell_Summary)
+                if 'Neutron_Pol' not in Pol_Trans[ID]['T_UU']:
+                    Pol_Trans[ID]['T_UU']['Neutron_Pol'] = [NP]
+                    Pol_Trans[ID]['T_UU']['Unpol_Trans'] = [UT]
+                else:
+                    Pol_Trans[ID]['T_UU']['Neutron_Pol'].append(NP)
+                    Pol_Trans[ID]['T_UU']['Unpol_Trans'].append(UT)
+            for Time in Pol_Trans[ID]['T_DD']['Meas_Time']:
+                NP, UT, T_MAJ, T_MIN = he3_pol_at_given_time(Time, HE3_Cell_Summary)
+                if 'Neutron_Pol' not in Pol_Trans[ID]['T_DD']:
+                    Pol_Trans[ID]['T_DD']['Neutron_Pol'] = [NP]
+                    Pol_Trans[ID]['T_DD']['Unpol_Trans'] = [UT]
+                else:
+                    Pol_Trans[ID]['T_DD']['Neutron_Pol'].append(NP)
+                    Pol_Trans[ID]['T_DD']['Unpol_Trans'].append(UT)       
+            for Time in Pol_Trans[ID]['T_DU']['Meas_Time']:
+                NP, UT, T_MAJ, T_MIN = he3_pol_at_given_time(Time, HE3_Cell_Summary)
+                if 'Neutron_Pol' not in Pol_Trans[ID]['T_DU']:
+                    Pol_Trans[ID]['T_DU']['Neutron_Pol'] = [NP]
+                    Pol_Trans[ID]['T_DU']['Unpol_Trans'] = [UT]
+                else:
+                    Pol_Trans[ID]['T_DU']['Neutron_Pol'].append(NP)
+                    Pol_Trans[ID]['T_DU']['Unpol_Trans'].append(UT)     
+            for Time in Pol_Trans[ID]['T_UD']['Meas_Time']:
+                NP, UT,T_MAJ, T_MIN = he3_pol_at_given_time(Time, HE3_Cell_Summary)
+                if 'Neutron_Pol' not in Pol_Trans[ID]['T_UD']:
+                    Pol_Trans[ID]['T_UD']['Neutron_Pol'] = [NP]
+                    Pol_Trans[ID]['T_UD']['Unpol_Trans'] = [UT]
+                else:
+                    Pol_Trans[ID]['T_UD']['Neutron_Pol'].append(NP)
+                    Pol_Trans[ID]['T_UD']['Unpol_Trans'].append(UT)
+
+    for ID in Pol_Trans:
+        if 'Neutron_Pol' in Pol_Trans[ID]['T_UU']:
+            ABS = np.array(Pol_Trans[ID]['T_SM']['Trans_Cts'])
+            Pol_Trans[ID]['AbsScale'] = np.average(ABS)
+
+            UU = np.array(Pol_Trans[ID]['T_UU']['Trans'])
+            UU_UnpolHe3Trans = np.array(Pol_Trans[ID]['T_UU']['Unpol_Trans'])
+            UU_NeutronPol = np.array(Pol_Trans[ID]['T_UU']['Neutron_Pol'])
+            DD = np.array(Pol_Trans[ID]['T_DD']['Trans'])
+            DD_UnpolHe3Trans = np.array(Pol_Trans[ID]['T_DD']['Unpol_Trans'])
+            DD_NeutronPol = np.array(Pol_Trans[ID]['T_DD']['Neutron_Pol'])
+            UD = np.array(Pol_Trans[ID]['T_UD']['Trans'])
+            UD_UnpolHe3Trans = np.array(Pol_Trans[ID]['T_UD']['Unpol_Trans'])
+            UD_NeutronPol = np.array(Pol_Trans[ID]['T_UD']['Neutron_Pol'])
+            DU = np.array(Pol_Trans[ID]['T_DU']['Trans'])
+            DU_UnpolHe3Trans = np.array(Pol_Trans[ID]['T_DU']['Unpol_Trans'])
+            DU_NeutronPol = np.array(Pol_Trans[ID]['T_DU']['Neutron_Pol'])
+            print('  ')
+            print(ID)
+            print('UU, DU, DD, UD Trans:', int(np.average(UU)*10000)/10000, " " , int(np.average(DU)*10000)/10000, " ", int(np.average(DD)*10000)/10000, " ", int(np.average(UD)*10000)/10000)
+            NPAve = 0.25*(np.average(UU_NeutronPol) + np.average(DU_NeutronPol) + np.average(DD_NeutronPol) + np.average(UD_NeutronPol))
+            print('3He Pol (Ave.)', NPAve)
+            
+            PF = 1.00
+            Pol_Trans[ID]['P_F'] = np.average(PF)
+            PSMUU = (UU/UU_UnpolHe3Trans - 1.0)/(UU_NeutronPol)
+            PSMDD = (DD/DD_UnpolHe3Trans - 1.0)/(DD_NeutronPol)
+            PSMUD = (1.0 - UD/UD_UnpolHe3Trans)/(UD_NeutronPol)
+            PSMDU = (1.0 - DU/DU_UnpolHe3Trans)/(DU_NeutronPol)
+            PSM_Ave = 0.25*(np.average(PSMUU) + np.average(PSMDD) + np.average(PSMUD) + np.average(PSMDU))
+            Pol_Trans[ID]['P_SM'] = np.average(PSM_Ave)
+            print('Sample Depol * PSM', Pol_Trans[ID]['P_SM'])
+            print('Flipping ratios (UU/DU, DD/UD):', int(10000*np.average(UU)/np.average(DU))/10000, int(10000*np.average(DD)/np.average(UD))/10000)
+            
+            if not UsePolCorr:
+                '''#False Means no, turn it off'''
+                Pol_Trans[ID]['P_SM'] = 1.0
+                Pol_Trans[ID]['P_F'] = 1.0
+                print('Manually reset P_SM and P_F to unity')
+
+    print(" ")
+    return Pol_Trans
+
+def sans_best_supermirror_polarization(Pol_Trans, UsePolCorr = True, Starting_PSM = 0.9985, YesNoBypassBestGuessPSM = False):
+    
+    Measured_PSM = [Starting_PSM]
+    if YesNoBypassBestGuessPSM:
+        for Sample in Pol_Trans:              
+            if 'P_SM' in Pol_Trans[Sample]:
+                Measured_PSM.append(Pol_Trans[Sample]['P_SM'])
+    Truest_PSM = np.amax(Measured_PSM)
+    if UsePolCorr:
+        print('Best measured PSM value (currently or previously measured) is', Truest_PSM)
+    if Truest_PSM > 1:
+        Truest_PSM = 1.0
+        if UsePolCorr:
+            print('Best PSM value set to 1.0')
+    print(" ")
+
+    return Truest_PSM
+
+def sans_record_data_processing_steps(save_path, Plex_Name, Scatt, BlockBeam, Trans, Pol_Trans, HE3_Cell_Summary, YesNoManualHe3Entry = False, Contents = 'not used'):
+                                
+    file_path = os.path.join(save_path, 'DataReductionSummary.txt')
+    file1 = open(file_path, "w+")
+    file1.write("Record of Data Reduction \n")
+    file1.write("****************************************** \n")
+    file1.write("****************************************** \n")
+    file1.write("User-defined Inputs: \n")
+    file1.write('\n')
+    file1.write(Contents)
+    file1.write("****************************************** \n")
+    file1.write("****************************************** \n")
+    file1.write('\n')
+
+    if YesNoManualHe3Entry >= 1:
+        file1.write("New_HE3_Files = ")
+        for x in New_HE3_Files:
+            file1.write(str(x) + ' ')
+        file1.write('\n')
+        file1.write("MuValues = ")
+        for x in MuValues:
+            file1.write(str(x) + ' ')
+        file1.write('\n')
+        file1.write("TeValues = ")
+        for x in TeValues:
+            file1.write(str(x) + ' ')
+        file1.write('\n')
+    file1.write('\n')
+    file1.write('Plex file is ' + str(Plex_Name) + '\n')
+    file1.write('\n')
+    file1.write('Detector shadowing is automatically corrected for. \n')
+        
+    for Sample in Scatt:
+        file1.write(str(Sample) +  '(' +  str(Scatt[Sample]['Intent']) + ') \n')
+        for Config in Scatt[Sample]['Config(s)']:
+            file1.write(' Config:' + str(Config) + '\n')
+            if Config in BlockBeam:
+                str1 = str(BlockBeam[Config]['Scatt']['File'])
+                str2 = str(BlockBeam[Config]['Trans']['File'])
+                str3 = '  Block Beam: '
+                file1.write(str3)
+                if str(BlockBeam[Config]['Scatt']['File']).find('NA') == -1 and str(BlockBeam[Config]['Trans']['File']).find('NA') == -1:
+                    file1.write(str1)
+                    file1.write(' (Scatt) and (Trans) ')
+                    file1.write(str2)
+                    file1.write('\n')
+                elif str(BlockBeam[Config]['Scatt']['File']).find('NA') == -1 and str(BlockBeam[Config]['Trans']['File']).find('NA') != -1:
+                    file1.write(str1)
+                    file1.write('\n')
+                elif str(BlockBeam[Config]['Scatt']['File']).find('NA') != -1 and str(BlockBeam[Config]['Trans']['File']).find('NA') == -1:
+                    file1.write(str2)
+                    file1.write('\n')
+            else:
+                str4 = '      ' + 'Block Beam Scatt, Trans files are not available \n'
+                file1.write(str4)
+            TransUnpol = str(Trans[Sample]['Config(s)'][Config]['Unpol_Files'])
+            if TransUnpol.find('N') != -1:
+                TransUnpol = 'NA'
+            TransPol = str(Trans[Sample]['Config(s)'][Config]['U_Files'])
+            if TransPol.find('N') != -1:
+                TransPol = 'NA'
+            #file1.write('  Unpol, Pol scaling trans: ' + TransUnpol + ' , ' + TransPol + '\n')
+            file1.write('  Unpol scaling trans: ' + TransUnpol + '\n')
+            file1.write('  Pol scaling trans: ' + TransPol + '\n')
+            file1.write('  Unpolarized Scatt ' + str(Scatt[Sample]['Config(s)'][Config]['Unpol']) + '\n')
+            file1.write('  Up Scatt ' + str(Scatt[Sample]['Config(s)'][Config]['U']) + '\n')
+            file1.write('  Down Scatt ' + str(Scatt[Sample]['Config(s)'][Config]['D']) + '\n')
+            file1.write('  Up-Up Scatt ' + str(Scatt[Sample]['Config(s)'][Config]['UU']) + '\n')
+            file1.write('  Up-Down Scatt ' + str(Scatt[Sample]['Config(s)'][Config]['UD']) + '\n')
+            file1.write('  Down-Down Scatt ' + str(Scatt[Sample]['Config(s)'][Config]['DD']) + '\n')
+            file1.write('  Down-Up Scatt '+ str(Scatt[Sample]['Config(s)'][Config]['DU']) + '\n')
+        if Sample in Pol_Trans:
+            if 'P_SM' in Pol_Trans[Sample] and str(Pol_Trans[Sample]['P_SM']).find('NA') == -1:
+                file1.write(' Full Polarization Results: \n')
+                pol_num = int(Pol_Trans[Sample]['P_SM']*10000)/10000
+                file1.write(' P_SM  x Depol: ' + str(pol_num) + '\n')
+                file1.write(' UU Trans ' + str(Pol_Trans[Sample]['T_UU']['File']) + '\n')
+                file1.write(' DU Trans ' + str(Pol_Trans[Sample]['T_DU']['File']) + '\n')
+                file1.write(' DD Trans ' + str(Pol_Trans[Sample]['T_DD']['File']) + '\n')
+                file1.write(' UD Trans ' + str(Pol_Trans[Sample]['T_UD']['File']) + '\n')
+                file1.write(' SM Trans ' + str(Pol_Trans[Sample]['T_SM']['File']) + '\n')
+        file1.write(' \n')
+
+    for entry in HE3_Cell_Summary:
+        file1.write('3He Cell: ' + str(HE3_Cell_Summary[entry]['Name']) + '\n')
+        file1.write('Lifetime (hours): ' + str(HE3_Cell_Summary[entry]['Gamma(hours)']) + ' +/- ' + str(HE3_Cell_Summary[entry]['Gamma_Unc']) + '\n')
+        file1.write('Atomic P_0: ' + str(HE3_Cell_Summary[entry]['Atomic_P0']) + ' +/- ' + str(HE3_Cell_Summary[entry]['Atomic_P0_Unc']) + '\n')
+        file1.write('Neutron P_0: ' + str(HE3_Cell_Summary[entry]['Neutron_P0']) + ' +/- ' + str(HE3_Cell_Summary[entry]['Neutron_P0_Unc']) + '\n')
+        file1.write('\n')
+    file1.close()
+
+    return
 

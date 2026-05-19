@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path.cwd().parent / 'src'))
 # Now import functions
 from sans_reduction_utilites.reduction_functions import get_by_filenumber, sans_sample_base_name_descrip
 
+'''
 #The following paramters should rarely be touched (just initialize this cell)
 SampleApertureInMM = True #Override in case sample aperture entered in cm rather than mm
 PreSebtractOpen = False #Default is False for no; True for yes. Subtracts trans-scaled open (if available) from pol-full in attempt to remove main beam spillover.
@@ -54,6 +55,7 @@ HighResMaxY = 917 #Default 917
 Instrument = 'VSANS' #Choices are 'VASNS', 'NG7SANS'
 SectorCutAngles = 15.0 #Default is typically 10.0 to 20.0 (degrees)
 StrucutrallyIsotropic = False #False is the safe bet if you don't know if your sample is strucutrally isotropic
+'''
 
 #********************************************************************
 #**** Run with defaults, unless have reason to do otherwise *********
@@ -117,109 +119,7 @@ def HE3_Pol_AtGivenTime(entry_time, HE3_Cell_Summary):
         
     return NeutronPol, UnpolHE3Trans, T_MAJ, T_MIN
 
-def AllSANS_PolarizationSupermirrorAndFlipper(Pol_Trans, HE3_Cell_Summary, UsePolCorr):
-    #Uses time of measurement from Pol_Trans and cell history from HE3_Cell_Summary.
-    #Saves PSM and PF values into Pol_Trans.
-    #Uses prefefined HE3_Pol_AtGivenTime function.
-    #Note: The vSANS RF Flipper polarization has been measured at 1.0 and is, thus, set.
-    
-    for ID in Pol_Trans:
-        if 'Meas_Time' in Pol_Trans[ID]['T_UU']:
-            for Time in Pol_Trans[ID]['T_UU']['Meas_Time']:
-                NP, UT, T_MAJ, T_MIN = HE3_Pol_AtGivenTime(Time, HE3_Cell_Summary)
-                if 'Neutron_Pol' not in Pol_Trans[ID]['T_UU']:
-                    Pol_Trans[ID]['T_UU']['Neutron_Pol'] = [NP]
-                    Pol_Trans[ID]['T_UU']['Unpol_Trans'] = [UT]
-                else:
-                    Pol_Trans[ID]['T_UU']['Neutron_Pol'].append(NP)
-                    Pol_Trans[ID]['T_UU']['Unpol_Trans'].append(UT)
-            for Time in Pol_Trans[ID]['T_DD']['Meas_Time']:
-                NP, UT, T_MAJ, T_MIN = HE3_Pol_AtGivenTime(Time, HE3_Cell_Summary)
-                if 'Neutron_Pol' not in Pol_Trans[ID]['T_DD']:
-                    Pol_Trans[ID]['T_DD']['Neutron_Pol'] = [NP]
-                    Pol_Trans[ID]['T_DD']['Unpol_Trans'] = [UT]
-                else:
-                    Pol_Trans[ID]['T_DD']['Neutron_Pol'].append(NP)
-                    Pol_Trans[ID]['T_DD']['Unpol_Trans'].append(UT)       
-            for Time in Pol_Trans[ID]['T_DU']['Meas_Time']:
-                NP, UT, T_MAJ, T_MIN = HE3_Pol_AtGivenTime(Time, HE3_Cell_Summary)
-                if 'Neutron_Pol' not in Pol_Trans[ID]['T_DU']:
-                    Pol_Trans[ID]['T_DU']['Neutron_Pol'] = [NP]
-                    Pol_Trans[ID]['T_DU']['Unpol_Trans'] = [UT]
-                else:
-                    Pol_Trans[ID]['T_DU']['Neutron_Pol'].append(NP)
-                    Pol_Trans[ID]['T_DU']['Unpol_Trans'].append(UT)     
-            for Time in Pol_Trans[ID]['T_UD']['Meas_Time']:
-                NP, UT,T_MAJ, T_MIN = HE3_Pol_AtGivenTime(Time, HE3_Cell_Summary)
-                if 'Neutron_Pol' not in Pol_Trans[ID]['T_UD']:
-                    Pol_Trans[ID]['T_UD']['Neutron_Pol'] = [NP]
-                    Pol_Trans[ID]['T_UD']['Unpol_Trans'] = [UT]
-                else:
-                    Pol_Trans[ID]['T_UD']['Neutron_Pol'].append(NP)
-                    Pol_Trans[ID]['T_UD']['Unpol_Trans'].append(UT)
-
-    for ID in Pol_Trans:
-        if 'Neutron_Pol' in Pol_Trans[ID]['T_UU']:
-            ABS = np.array(Pol_Trans[ID]['T_SM']['Trans_Cts'])
-            Pol_Trans[ID]['AbsScale'] = np.average(ABS)
-
-            UU = np.array(Pol_Trans[ID]['T_UU']['Trans'])
-            UU_UnpolHe3Trans = np.array(Pol_Trans[ID]['T_UU']['Unpol_Trans'])
-            UU_NeutronPol = np.array(Pol_Trans[ID]['T_UU']['Neutron_Pol'])
-            DD = np.array(Pol_Trans[ID]['T_DD']['Trans'])
-            DD_UnpolHe3Trans = np.array(Pol_Trans[ID]['T_DD']['Unpol_Trans'])
-            DD_NeutronPol = np.array(Pol_Trans[ID]['T_DD']['Neutron_Pol'])
-            UD = np.array(Pol_Trans[ID]['T_UD']['Trans'])
-            UD_UnpolHe3Trans = np.array(Pol_Trans[ID]['T_UD']['Unpol_Trans'])
-            UD_NeutronPol = np.array(Pol_Trans[ID]['T_UD']['Neutron_Pol'])
-            DU = np.array(Pol_Trans[ID]['T_DU']['Trans'])
-            DU_UnpolHe3Trans = np.array(Pol_Trans[ID]['T_DU']['Unpol_Trans'])
-            DU_NeutronPol = np.array(Pol_Trans[ID]['T_DU']['Neutron_Pol'])
-            print('  ')
-            print(ID)
-            print('UU, DU, DD, UD Trans:', int(np.average(UU)*10000)/10000, " " , int(np.average(DU)*10000)/10000, " ", int(np.average(DD)*10000)/10000, " ", int(np.average(UD)*10000)/10000)
-            NPAve = 0.25*(np.average(UU_NeutronPol) + np.average(DU_NeutronPol) + np.average(DD_NeutronPol) + np.average(UD_NeutronPol))
-            print('3He Pol (Ave.)', NPAve)
-            
-            PF = 1.00
-            Pol_Trans[ID]['P_F'] = np.average(PF)
-            PSMUU = (UU/UU_UnpolHe3Trans - 1.0)/(UU_NeutronPol)
-            PSMDD = (DD/DD_UnpolHe3Trans - 1.0)/(DD_NeutronPol)
-            PSMUD = (1.0 - UD/UD_UnpolHe3Trans)/(UD_NeutronPol)
-            PSMDU = (1.0 - DU/DU_UnpolHe3Trans)/(DU_NeutronPol)
-            PSM_Ave = 0.25*(np.average(PSMUU) + np.average(PSMDD) + np.average(PSMUD) + np.average(PSMDU))
-            Pol_Trans[ID]['P_SM'] = np.average(PSM_Ave)
-            print('Sample Depol * PSM', Pol_Trans[ID]['P_SM'])
-            print('Flipping ratios (UU/DU, DD/UD):', int(10000*np.average(UU)/np.average(DU))/10000, int(10000*np.average(DD)/np.average(UD))/10000)
-            
-            if not UsePolCorr:
-                '''#False Means no, turn it off'''
-                Pol_Trans[ID]['P_SM'] = 1.0
-                Pol_Trans[ID]['P_F'] = 1.0
-                print('Manually reset P_SM and P_F to unity')
-
-    print(" ")
-    return
-
-def vSANS_BestSuperMirrorPolarizationValue(UsePolCorr, Starting_PSM, YesNoBypassBestGuessPSM, Pol_Trans):
-    
-    Measured_PSM = [Starting_PSM]
-    if YesNoBypassBestGuessPSM:
-        for Sample in Pol_Trans:              
-            if 'P_SM' in Pol_Trans[Sample]:
-                Measured_PSM.append(Pol_Trans[Sample]['P_SM'])
-    Truest_PSM = np.amax(Measured_PSM)
-    if UsePolCorr:
-        print('Best measured PSM value (currently or previously measured) is', Truest_PSM)
-    if Truest_PSM > 1:
-        Truest_PSM = 1.0
-        if UsePolCorr:
-            print('Best PSM value set to 1.0')
-    print(" ")
-
-    return Truest_PSM
-
-def vSANS_Record_DataProcessing(Detector_Panels, Instrument, YesNoManualHe3Entry, save_path, Contents, Plex_Name, Scatt, BlockBeam, Trans, Pol_Trans, HE3_Cell_Summary):
+def vSANS_Record_DataProcessing(save_path, Plex_Name = 'not used', Scatt = {}, BlockBeam = {}, Trans = {}, Pol_Trans = {}, HE3_Cell_Summary = {}, YesNoManualHe3Entry = False, Contents = 'not used'):
                                 
     file_path = os.path.join(save_path, "DataReductionSummary.txt")
     #file1 = open(save_path + "DataReductionSummary.txt","w+") #**********Remove
@@ -1007,8 +907,10 @@ def ASCIIlike_Output(Detector_Panels, Instrument, save_path, YesNo_2DFilesPerDet
     return
 
 
-def VSANS_MakeSlices_and_SaveASCII(Detector_Panels, Instrument, SampleApertureInMM, SampleDescriptionKeywordsToExclude, UsePolCorr, YesNoManualHe3Entry, input_path, save_path, He3CorrectionType, YesNo_2DFilesPerDetector, YesNo_2DCombinedFiles, Absolute_Q_min, Absolute_Q_max, AverageQRanges, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, HE3_Cell_Summary, Plex, Truest_PSM, Minimum_PSM, AlignDet_Trans, HE3_TransCatalog, start_number, He3Only_Check, ScattCatalog, BlockBeamCatalog, Configs, Sample_Names, TransCatalog, Pol_TransCatalog, MidddlePixelBorderHorizontal, MidddlePixelBorderVertical, SectorCutAngles, Slices):
+def VSANS_MakeSlices_and_SaveASCII(YesNoShowPlots, Detector_Panels, Instrument, SampleApertureInMM, SampleDescriptionKeywordsToExclude, UsePolCorr, YesNoManualHe3Entry, input_path, save_path, He3CorrectionType, YesNo_2DFilesPerDetector, YesNo_2DCombinedFiles, Absolute_Q_min, Absolute_Q_max, AverageQRanges, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, HE3_Cell_Summary, Plex, Truest_PSM, Minimum_PSM, AlignDet_Trans, He3Only_Check, ScattCatalog, BlockBeamCatalog, Configs, Sample_Names, TransCatalog, Pol_TransCatalog, MidddlePixelBorderHorizontal, MidddlePixelBorderVertical, SectorCutAngles, Slices):
 
+    if SampleDescriptionKeywordsToExclude == None:
+        SampleDescriptionKeywordsToExclude = []
     if not He3Only_Check:
         QValues_All = {}
         AllFullPolSlices = {}
@@ -1077,10 +979,10 @@ def VSANS_MakeSlices_and_SaveASCII(Detector_Panels, Instrument, SampleApertureIn
 
                                 if str(ScattCatalog[Sample]['Intent']).find('Sample') != -1:
                                     SiMirror = ScattCatalog[Sample]['Config(s)'][Config]['SiMirror']
-                                    FullPolSampleSlices[Sample] = vSANS_FullPolSlices(save_path, Detector_Panels, Instrument, SiMirror, Slices, SectorCutAngles, AverageQRanges, FullPolGo, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, PolCorrUU, PolCorrUU_Unc, PolCorrDU, PolCorrDU_Unc, PolCorrDD, PolCorrDD_Unc, PolCorrUD, PolCorrUD_Unc)
+                                    FullPolSampleSlices[Sample] = vSANS_FullPolSlices(YesNoShowPlots, save_path, Detector_Panels, Instrument, SiMirror, Slices, SectorCutAngles, AverageQRanges, FullPolGo, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, PolCorrUU, PolCorrUU_Unc, PolCorrDU, PolCorrDU_Unc, PolCorrDD, PolCorrDD_Unc, PolCorrUD, PolCorrUD_Unc)
                                 if str(ScattCatalog[Sample]['Intent']).find('Empty') != -1:
                                     SiMirror = ScattCatalog[Sample]['Config(s)'][Config]['SiMirror']
-                                    FullPolSampleSlices['Empty'] = vSANS_FullPolSlices(save_path, Detector_Panels, Instrument, SiMirror, Slices, SectorCutAngles, AverageQRanges, FullPolGo, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, PolCorrUU, PolCorrUU_Unc, PolCorrDU, PolCorrDU_Unc, PolCorrDD, PolCorrDD_Unc, PolCorrUD, PolCorrUD_Unc)
+                                    FullPolSampleSlices['Empty'] = vSANS_FullPolSlices(YesNoShowPlots, save_path, Detector_Panels, Instrument, SiMirror, Slices, SectorCutAngles, AverageQRanges, FullPolGo, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, PolCorrUU, PolCorrUU_Unc, PolCorrDU, PolCorrDU_Unc, PolCorrDD, PolCorrDD_Unc, PolCorrUD, PolCorrUD_Unc)
                             
                             UScaledData, UScaledData_Unc = AbsScale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, 'U', Sample, Config, BB_per_second, Solid_Angle, Plex, ScattCatalog, TransCatalog)
                             DScaledData, DScaledData_Unc = AbsScale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, 'D', Sample, Config, BB_per_second, Solid_Angle, Plex, ScattCatalog, TransCatalog)
@@ -1121,7 +1023,7 @@ def VSANS_MakeSlices_and_SaveASCII(Detector_Panels, Instrument, SampleApertureIn
     return AllFullPolSlices, AllHalfPolSlices, AllUnpolSlices
 
 
-def vSANS_FullPolSlices(save_path, Detector_Panels, Instrument, SiMirror, Slices, SectorCutAngles, AverageQRanges, PolCorrDegree, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, PolCorrUU, PolCorrUU_Unc, PolCorrDU, PolCorrDU_Unc, PolCorrDD, PolCorrDD_Unc, PolCorrUD, PolCorrUD_Unc):
+def vSANS_FullPolSlices(YesNoShowPlots, save_path, Detector_Panels, Instrument, SiMirror, Slices, SectorCutAngles, AverageQRanges, PolCorrDegree, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, PolCorrUU, PolCorrUU_Unc, PolCorrDU, PolCorrDU_Unc, PolCorrDD, PolCorrDD_Unc, PolCorrUD, PolCorrUD_Unc):
 
     relevant_detectors = list(Detector_Panels)
     if str(Config).find('CvB') != -1:
@@ -1259,7 +1161,7 @@ def vSANS_UnpolSlices(Detector_Panels, Instrument, SiMirror, Slices, SectorCutAn
 
     return ReturnSlices
 
-def vSANS_SaveSlices_And_Results(StrucutrallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, He3Only_Check, Configs, Sample_Names, ScattCatalog, AllFullPolSlices, AllHalfPolSlices, AllUnpolSlices):
+def vSANS_SaveSlices_And_Results(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, He3Only_Check, Configs, Sample_Names, ScattCatalog, AllFullPolSlices, AllHalfPolSlices, AllUnpolSlices):
     #Uses vSANS_ProcessFullPolSlices.
     AllFullPolResults = {}
     AllHalfPolResults = {}
@@ -1278,14 +1180,14 @@ def vSANS_SaveSlices_And_Results(StrucutrallyIsotropic, Slices, SectorCutAngles,
                         if str(ScattCatalog[Sample]['Intent']).find('Sample') != -1:
                             print('     ', Sample)
                             if Sample in AllFullPolSlices[Config]:
-                                FullPolResults[Sample] = vSANS_ProcessFullPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllFullPolSlices[Config], Sample)
+                                FullPolResults[Sample] = vSANS_ProcessFullPolSlices(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllFullPolSlices[Config], Sample)
                             if Sample in AllHalfPolSlices[Config]:
                                 HalfPolResults[Sample] = vSANS_ProcessHalfPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllHalfPolSlices[Config], Sample)
                             if Sample in AllUnpolSlices[Config]:
                                 UnpolResults[Sample] = vSANS_ProcessUnpolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllUnpolSlices[Config], Sample)
                 if not AutoSubtractEmpty:
                     if 'Empty' in AllFullPolSlices[Config]:
-                        FullPolResults['Empty'] = vSANS_ProcessFullPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllFullPolSlices[Config], 'Empty')
+                        FullPolResults['Empty'] = vSANS_ProcessFullPolSlices(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllFullPolSlices[Config], 'Empty')
                     if 'Empty' in AllHalfPolSlices[Config]:
                         HalfPolResults['Empty'] = vSANS_ProcessHalfPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllHalfPolSlices[Config], 'Empty')
                     if 'Empty' in AllUnpolSlices[Config]:
@@ -1297,7 +1199,7 @@ def vSANS_SaveSlices_And_Results(StrucutrallyIsotropic, Slices, SectorCutAngles,
         
     return AllFullPolResults, AllHalfPolResults, AllUnpolResults
 
-def vSANS_ProcessFullPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, PolSampleSlices, Sample):
+def vSANS_ProcessFullPolSlices(StrucutrallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, PolSampleSlices, Sample):
     '''Note uses AutoSubtractEmpty  and UseMTCirc from UserInput.py'''
     #Uses MatchQ_PADataSets and Subtract_PADataSets.
 
@@ -1346,8 +1248,8 @@ def vSANS_ProcessFullPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlot
                 DataMatch, MTMatch = MatchQ_PADataSets(Data_Cuts[sector_cut], MT_Cuts[sector_cut], 2)
                 Data_Cuts[sector_cut] = Subtract_PADataSets(DataMatch, MTMatch, 2)
 
-        #SaveTextDataFourCombinedCrossSections(save_path,  '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Data_Cuts[sector_cut])
-        #PlotFourCombinedCrossSections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Data_Cuts[sector_cut])
+        SaveTextDataFourCombinedCrossSections(save_path,  '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Data_Cuts[sector_cut])
+        PlotFourCombinedCrossSections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Data_Cuts[sector_cut])
 
     AngleA = (45 - SectorCutAngles)*3.141593/180.0
     AngleB = (45 + SectorCutAngles)*3.141593/180.0
@@ -1451,7 +1353,9 @@ def vSANS_ProcessFullPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlot
         plt.ylabel('Intensity')
         plt.title('Full-Pol Magnetic and Structural Scattering of {samp}'.format(samp=Sample))
         plt.legend()
-        fig.savefig(save_path + 'ResultsFullPol_{samp},{cf}_{key}{width}{sub}.png'.format(samp=Sample, cf = Config,  key = PolType, width = Width, sub = Sub))
+        file_name = 'ResultsFullPol_{samp},{cf}_{key}{width}{sub}.png'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub)
+        file_path = os.path.join(save_path, file_name)
+        fig.savefig(file_path, dpi = 300)
         if YesNoShowPlots:
             plt.show()
         plt.close()
@@ -1922,7 +1826,9 @@ def SaveTextDataFourCombinedCrossSections(save_path,  Type, Slice, Sub, Sample, 
     Shadow = Matrix['Shadow']
     text_output = np.array([Q, UU, UU_Unc, DU, DU_Unc, DD, DD_Unc, UD, UD_Unc, Q_Unc, Q_mean, Shadow])
     text_output = text_output.T
-    np.savetxt(save_path + 'SliceFullPol_{samp},{cf}_{key}{cut}{sub}.txt'.format(samp=Sample, cf = Config, key = Type, cut = Slice, sub = Sub), text_output,
+    file_name = 'SliceFullPol_{samp},{cf}_{key}{cut}{sub}.txt'.format(samp=Sample, cf = Config, key = Type, cut = Slice, sub = Sub)
+    file_path = os.path.join(save_path, file_name)
+    np.savetxt(file_path, text_output,
                delimiter = ' ', comments = '', header= 'Q, UU, DelUU, DU, DelDU, DD, DelDD, UD, DelUD, Q_Unc, Q_mean, Shadow', fmt='%1.4e')
   
     return
@@ -1970,7 +1876,9 @@ def PlotFourCombinedCrossSections(save_path, YesNoShowPlots, YesNoSetPlotXRange,
     plt.ylabel('Intensity')
     plt.title('{slice_type}_{idnum},{cf}'.format(slice_type = Slice, idnum=Sample, cf = Config))
     plt.legend()
-    fig.savefig(save_path + 'SliceFullPol_{samp},{cf}_{corr}{slice_type}{sub}.png'.format(samp=Sample, cf = Config, corr = Type, slice_type = Slice, sub = Sub))
+    file_name = 'SliceFullPol_{samp},{cf}_{corr}{slice_type}{sub}.png'.format(samp=Sample, cf = Config, corr = Type, slice_type = Slice, sub = Sub)
+    file_path = os.path.join(save_path, file_name) 
+    fig.savefig(file_path)
     if YesNoShowPlots:
         plt.show()
     plt.close()
@@ -2268,7 +2176,7 @@ def AllSANS_PolCorrScattFiles(Detector_Panels, Instrument, UsePolCorr, input_pat
 
     return Have_FullPol, PolCorr_ALLCS, PolCorr_UU, PolCorr_DU, PolCorr_DD, PolCorr_UD, PolCorr_ALLCS_Unc, PolCorr_UU_Unc, PolCorr_DU_Unc, PolCorr_DD_Unc, PolCorr_UD_Unc
 
-def vSANS_ProcessFullPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, PolSampleSlices, Sample):
+def vSANS_ProcessFullPolSlices(StrucutrallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, PolSampleSlices, Sample):
     '''Note uses AutoSubtractEmpty  and UseMTCirc from UserInput.py'''
 
     Sub = ""
@@ -2369,7 +2277,7 @@ def vSANS_ProcessFullPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlot
         Diff_Unc = np.sqrt(np.power(Data_Cuts["Vert"]['DD_Unc'],2) + np.power(Data_Cuts["Vert"]['UU_Unc'],2))
         Num = np.power((Diff),2)
         Num_Unc = np.sqrt(2.0)*Diff*Diff_Unc
-        if StrucutrallyIsotropic >= 0:
+        if StrucutrallyIsotropic:
             Denom = (8.0*(Data_Cuts["Horz"]['DD'] + Data_Cuts["Horz"]['UU']))
             Denom_Unc = np.sqrt(np.power(Data_Cuts["Horz"]['DD_Unc'],2) + np.power(Data_Cuts["Horz"]['UU_Unc'],2))
         else:
@@ -2910,99 +2818,6 @@ def vSANS_ProcessUnpolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots,
     
     return Results
 
-
-def vSANS_Record_DataProcessing(Detector_Panels, Instrument, YesNoManualHe3Entry, save_path, Contents, Plex_Name, Scatt, BlockBeam, Trans, Pol_Trans, HE3_Cell_Summary):
-                                
-    file1 = open(save_path + "DataReductionSummary.txt","w+")
-    file1.write("Record of Data Reduction \n")
-    file1.write("****************************************** \n")
-    file1.write("****************************************** \n")
-    file1.write("User-defined Inputs: \n")
-    file1.write('\n')
-    file1.write(Contents)
-    file1.write("****************************************** \n")
-    file1.write("****************************************** \n")
-    file1.write('\n')
-
-    if YesNoManualHe3Entry >= 1:
-        file1.write("New_HE3_Files = ")
-        for x in New_HE3_Files:
-            file1.write(str(x) + ' ')
-        file1.write('\n')
-        file1.write("MuValues = ")
-        for x in MuValues:
-            file1.write(str(x) + ' ')
-        file1.write('\n')
-        file1.write("TeValues = ")
-        for x in TeValues:
-            file1.write(str(x) + ' ')
-        file1.write('\n')
-    file1.write('\n')
-    file1.write('Plex file is ' + str(Plex_Name) + '\n')
-    file1.write('\n')
-    file1.write('Detector shadowing is automatically corrected for. \n')
-        
-    for Sample in Scatt:
-        file1.write(str(Sample) +  '(' +  str(Scatt[Sample]['Intent']) + ') \n')
-        for Config in Scatt[Sample]['Config(s)']:
-            file1.write(' Config:' + str(Config) + '\n')
-            if Config in BlockBeam:
-                str1 = str(BlockBeam[Config]['Scatt']['File'])
-                str2 = str(BlockBeam[Config]['Trans']['File'])
-                str3 = '  Block Beam: '
-                file1.write(str3)
-                if str(BlockBeam[Config]['Scatt']['File']).find('NA') == -1 and str(BlockBeam[Config]['Trans']['File']).find('NA') == -1:
-                    file1.write(str1)
-                    file1.write(' (Scatt) and (Trans) ')
-                    file1.write(str2)
-                    file1.write('\n')
-                elif str(BlockBeam[Config]['Scatt']['File']).find('NA') == -1 and str(BlockBeam[Config]['Trans']['File']).find('NA') != -1:
-                    file1.write(str1)
-                    file1.write('\n')
-                elif str(BlockBeam[Config]['Scatt']['File']).find('NA') != -1 and str(BlockBeam[Config]['Trans']['File']).find('NA') == -1:
-                    file1.write(str2)
-                    file1.write('\n')
-            else:
-                str4 = '      ' + 'Block Beam Scatt, Trans files are not available \n'
-                file1.write(str4)
-            TransUnpol = str(Trans[Sample]['Config(s)'][Config]['Unpol_Files'])
-            if TransUnpol.find('N') != -1:
-                TransUnpol = 'NA'
-            TransPol = str(Trans[Sample]['Config(s)'][Config]['U_Files'])
-            if TransPol.find('N') != -1:
-                TransPol = 'NA'
-            #file1.write('  Unpol, Pol scaling trans: ' + TransUnpol + ' , ' + TransPol + '\n')
-            file1.write('  Unpol scaling trans: ' + TransUnpol + '\n')
-            file1.write('  Pol scaling trans: ' + TransPol + '\n')
-            file1.write('  Unpolarized Scatt ' + str(Scatt[Sample]['Config(s)'][Config]['Unpol']) + '\n')
-            file1.write('  Up Scatt ' + str(Scatt[Sample]['Config(s)'][Config]['U']) + '\n')
-            file1.write('  Down Scatt ' + str(Scatt[Sample]['Config(s)'][Config]['D']) + '\n')
-            file1.write('  Up-Up Scatt ' + str(Scatt[Sample]['Config(s)'][Config]['UU']) + '\n')
-            file1.write('  Up-Down Scatt ' + str(Scatt[Sample]['Config(s)'][Config]['UD']) + '\n')
-            file1.write('  Down-Down Scatt ' + str(Scatt[Sample]['Config(s)'][Config]['DD']) + '\n')
-            file1.write('  Down-Up Scatt '+ str(Scatt[Sample]['Config(s)'][Config]['DU']) + '\n')
-        if Sample in Pol_Trans:
-            if 'P_SM' in Pol_Trans[Sample] and str(Pol_Trans[Sample]['P_SM']).find('NA') == -1:
-                file1.write(' Full Polarization Results: \n')
-                pol_num = int(Pol_Trans[Sample]['P_SM']*10000)/10000
-                file1.write(' P_SM  x Depol: ' + str(pol_num) + '\n')
-                file1.write(' UU Trans ' + str(Pol_Trans[Sample]['T_UU']['File']) + '\n')
-                file1.write(' DU Trans ' + str(Pol_Trans[Sample]['T_DU']['File']) + '\n')
-                file1.write(' DD Trans ' + str(Pol_Trans[Sample]['T_DD']['File']) + '\n')
-                file1.write(' UD Trans ' + str(Pol_Trans[Sample]['T_UD']['File']) + '\n')
-                file1.write(' SM Trans ' + str(Pol_Trans[Sample]['T_SM']['File']) + '\n')
-        file1.write(' \n')
-
-    for entry in HE3_Cell_Summary:
-        file1.write('3He Cell: ' + str(HE3_Cell_Summary[entry]['Name']) + '\n')
-        file1.write('Lifetime (hours): ' + str(HE3_Cell_Summary[entry]['Gamma(hours)']) + ' +/- ' + str(HE3_Cell_Summary[entry]['Gamma_Unc']) + '\n')
-        file1.write('Atomic P_0: ' + str(HE3_Cell_Summary[entry]['Atomic_P0']) + ' +/- ' + str(HE3_Cell_Summary[entry]['Atomic_P0_Unc']) + '\n')
-        file1.write('Neutron P_0: ' + str(HE3_Cell_Summary[entry]['Neutron_P0']) + ' +/- ' + str(HE3_Cell_Summary[entry]['Neutron_P0_Unc']) + '\n')
-        file1.write('\n')
-    file1.close()
-
-    return
-
 def Annular_Average(Detector_Panels, Instrument, save_path, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_total, GeneralMask, ScaledData, ScaledData_Unc):
 
     relevant_detectors = list(Detector_Panels)
@@ -3058,42 +2873,6 @@ def Annular_Average(Detector_Panels, Instrument, save_path, Sample, Config, InPl
       
     return
 
-def vSANS_SaveSlices_And_Results(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, He3Only_Check, Configs, Sample_Names, ScattCatalog, AllFullPolSlices, AllHalfPolSlices, AllUnpolSlices):
-    AllFullPolResults = {}
-    AllHalfPolResults = {}
-    AllUnpolResults = {}
-    if not He3Only_Check:
-        for Config in Configs:
-            representative_filenumber = Configs[Config]
-            if representative_filenumber != 0:
-                print(' ')
-                print('Saving text files and data plots in configuration', Config, '...')
-                FullPolResults = {}
-                HalfPolResults = {}
-                UnpolResults = {}
-                for Sample in Sample_Names:
-                    if Sample in ScattCatalog:                
-                        if str(ScattCatalog[Sample]['Intent']).find('Sample') != -1:
-                            print('     ', Sample)
-                            if Sample in AllFullPolSlices[Config]:
-                                FullPolResults[Sample] = vSANS_ProcessFullPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllFullPolSlices[Config], Sample)
-                            if Sample in AllHalfPolSlices[Config]:
-                                HalfPolResults[Sample] = vSANS_ProcessHalfPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllHalfPolSlices[Config], Sample)
-                            if Sample in AllUnpolSlices[Config]:
-                                UnpolResults[Sample] = vSANS_ProcessUnpolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllUnpolSlices[Config], Sample)
-                if not AutoSubtractEmpty:
-                    if 'Empty' in AllFullPolSlices[Config]:
-                        FullPolResults['Empty'] = vSANS_ProcessFullPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllFullPolSlices[Config], 'Empty')
-                    if 'Empty' in AllHalfPolSlices[Config]:
-                        HalfPolResults['Empty'] = vSANS_ProcessHalfPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllHalfPolSlices[Config], 'Empty')
-                    if 'Empty' in AllUnpolSlices[Config]:
-                        UnpolResults['Empty'] = vSANS_ProcessUnpolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllUnpolSlices[Config], 'Empty')
-
-                AllFullPolResults[Config] = FullPolResults
-                AllHalfPolResults[Config] = HalfPolResults
-                AllUnpolResults[Config] = UnpolResults
-        
-    return AllFullPolResults, AllHalfPolResults, AllUnpolResults
     
 def VSANS_CatergorizeSamplesAndBases(He3Only_Check, Configs, Sample_Bases, Sample_Names, ScattCatalog, AllFullPolSlices,AllHalfPolSlices, AllUnpolSlices):
     
@@ -3283,13 +3062,17 @@ def vSANS_Comparison_PlotsAndText(save_path, Slices, ScattCatalog, Config, Compa
             if HaveData >= 2:
                 text_outputII = np.array(text_output)
                 text_outputII = text_outputII.T
-                np.savetxt(save_path + 'Compare_{base},{cf}_{name}.txt'.format(base = Base, cf=Config, name = FullCutName), text_outputII, delimiter = ' ', comments = '', header =  descrip, fmt='%1.4e')
+                file_name = 'Compare_{base},{cf}_{name}.txt'.format(base = Base, cf=Config, name = FullCutName)
+                file_path = os.path.join(save_path, file_name)
+                np.savetxt(file_path, text_outputII, delimiter = ' ', comments = '', header =  descrip, fmt='%1.4e')
 
                 plt.xlabel('Q')
                 plt.ylabel('Intensity')
                 plt.title('{name} for_{cf}'.format(name = FullCutName, cf = Config))
                 plt.legend()
-                fig.savefig(save_path + 'Compare_{base},{cf}_{name}.png'.format(base = Base, cf = Config, name = FullCutName))
+                file_name = 'Compare_{base},{cf}_{name}.png'.format(base = Base, cf=Config, name = FullCutName)
+                file_path = os.path.join(save_path, file_name)
+                fig.savefig(file_path)
                 plt.show()
                 plt.close()
             else:
