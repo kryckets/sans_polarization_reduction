@@ -1,0 +1,96 @@
+name: Build Notebooks to HTML
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**.ipynb'
+      - '.github/workflows/build-notebooks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install jupyter nbconvert
+
+      - name: Convert notebooks to HTML
+        run: |
+          # Create output directory
+          mkdir -p docs
+          
+          # Find all notebooks and convert them
+          find . -name "*.ipynb" -not -path "./.git/*" | while read notebook; do
+            echo "Converting $notebook..."
+            jupyter nbconvert --to html "$notebook" --output-dir docs --output "$(basename "$notebook" .ipynb).html"
+          done
+
+      - name: Create index page
+        run: |
+          cat > docs/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Notebooks</title>
+              <style>
+                  body { font-family: Arial, sans-serif; margin: 40px; }
+                  h1 { color: #333; }
+                  ul { list-style-type: none; padding: 0; }
+                  li { margin: 10px 0; }
+                  a { color: #0066cc; text-decoration: none; }
+                  a:hover { text-decoration: underline; }
+              </style>
+          </head>
+          <body>
+              <h1>Notebook Documentation</h1>
+              <ul>
+          EOF
+          
+          # Generate links to all converted notebooks
+          find docs -name "*.html" -not -name "index.html" | sort | while read html; do
+            name=$(basename "$html" .html)
+            echo "                <li><a href=\"$(basename "$html")\">$name</a></li>" >> docs/index.html
+          done
+          
+          cat >> docs/index.html << 'EOF'
+              </ul>
+          </body>
+          </html>
+          EOF
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: 'docs'
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2

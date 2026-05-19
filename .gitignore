@@ -50,3 +50,7 @@ htmlcov/
 # Local backups
 *.bak
 *.orig
+
+# Generated documentation
+docs/
+*.html
