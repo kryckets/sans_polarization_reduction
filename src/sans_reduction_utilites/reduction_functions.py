@@ -1402,7 +1402,7 @@ def sans_polarization_supermirror_and_flipper(Pol_Trans, HE3_Cell_Summary, UsePo
     for ID in Pol_Trans:
         if 'Neutron_Pol' in Pol_Trans[ID]['T_UU']:
             ABS = np.array(Pol_Trans[ID]['T_SM']['Trans_Cts'])
-            Pol_Trans[ID]['AbsScale'] = np.average(ABS)
+            Pol_Trans[ID]['abs_scale'] = np.average(ABS)
 
             UU = np.array(Pol_Trans[ID]['T_UU']['Trans'])
             UU_UnpolHe3Trans = np.array(Pol_Trans[ID]['T_UU']['Unpol_Trans'])
