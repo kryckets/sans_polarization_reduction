@@ -17,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path.cwd().parent / 'src'))
 
 # Now import functions
-from sans_reduction_utilites.reduction_functions import get_by_filenumber, AllSANS_Sample_BaseNameDescrip
+from sans_reduction_utilites.reduction_functions import get_by_filenumber, sans_sample_base_name_descrip
 
 #The following paramters should rarely be touched (just initialize this cell)
 SampleApertureInMM = True #Override in case sample aperture entered in cm rather than mm
@@ -328,9 +328,9 @@ def He3_Evaluation(He3Only_Check, HE3_TransCatalog):
 
 def SolidAngle_AllDetectors(Detector_Panels, Instrument, input_path, representative_filenumber, Config):
 
-    relevant_detectors = Detector_Panels
+    relevant_detectors = list(Detector_Panels)
     if str(Config).find('CvB') != -1:
-        relevant_detectors,append('B')   
+        relevant_detectors.append('B')
     
     Solid_Angle = {}
     f = get_by_filenumber(Detector_Panels, Instrument, input_path, representative_filenumber)
@@ -353,6 +353,7 @@ def SolidAngle_AllDetectors(Detector_Panels, Instrument, input_path, representat
             theta_x_step = x_pixel_size / realDistZ
             theta_y_step = y_pixel_size / realDistZ
             Solid_Angle[dshort] = theta_x_step * theta_y_step
+        f.close()
 
     return Solid_Angle
 
@@ -363,7 +364,7 @@ def AllSANS_BlockedBeamCountsPerSecond_ListOfFiles(Detector_Panels, Instrument, 
     BB_Seconds = {}
     BB_CountsPerSecond = {}
     
-    relevant_detectors = Detector_Panels
+    relevant_detectors = list(Detector_Panels)
     if str(Config).find('CvB') != -1:
         relevant_detectors.append('B')
 
@@ -391,6 +392,7 @@ def AllSANS_BlockedBeamCountsPerSecond_ListOfFiles(Detector_Panels, Instrument, 
                     BB_CountsPerSecond[dshort] = BB_Counts[dshort]/BB_Seconds[dshort]
                     BB_Unc[dshort] = np.sqrt(BB_Counts[dshort])/BB_Seconds[dshort]
                 item_counter += 1
+            f.close()
 
     if len(BB_CountsPerSecond) < 1:
         f = get_by_filenumber(Detector_Panels, Instrument, input_path, examplefilenumber)
@@ -402,13 +404,14 @@ def AllSANS_BlockedBeamCountsPerSecond_ListOfFiles(Detector_Panels, Instrument, 
                     data = np.array(f['entry/instrument/detector/data'])
                 BB_CountsPerSecond[dshort] = np.zeros_like(data)
                 BB_Unc[dshort] = np.zeros_like(data)
+            f.close()
 
     return BB_CountsPerSecond, BB_Unc #returns empty list or 2D, detector-panel arrays
 
 def QCalculation_AllDetectors(Detector_Panels, Instrument, SampleApertureInMM, SampleDescriptionKeywordsToExclude, input_path, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, representative_filenumber, Config, MidddlePixelBorderHorizontal, MidddlePixelBorderVertical, SectorCutAngles, Slices, AlignDet_Trans):
-    #Uses AllSANS_Sample_BaseNameDescrip(Detector_Panels, Instrument, input_path, representative_filenumber)
+    #Uses sans_sample_base_name_descrip(Detector_Panels, Instrument, input_path, representative_filenumber)
 
-    relevant_detectors = Detector_Panels
+    relevant_detectors = list(Detector_Panels)
     if str(Config).find('CvB') != -1:
         relevant_detectors.append('B')
 
@@ -430,7 +433,7 @@ def QCalculation_AllDetectors(Detector_Panels, Instrument, SampleApertureInMM, S
     dimXX = {}
     dimYY = {}
 
-    Sample_Base, Sample_Name, Descrip, Listed_Config, Desired_Temp, Voltage = AllSANS_Sample_BaseNameDescrip(Detector_Panels, Instrument, SampleDescriptionKeywordsToExclude, input_path, representative_filenumber)
+    Sample_Base, Sample_Name, Descrip, Listed_Config, Desired_Temp, Voltage = sans_sample_base_name_descrip(Detector_Panels, Instrument, SampleDescriptionKeywordsToExclude, input_path, representative_filenumber)
 
     f = get_by_filenumber(Detector_Panels, Instrument, input_path, representative_filenumber)
     if f is not None:
@@ -711,13 +714,14 @@ def QCalculation_AllDetectors(Detector_Panels, Instrument, SampleApertureInMM, S
                 Shadow[twotheta_y[dshort] <= twotheta_ymax['MB']] = 0.0
 
             Shadow_Mask[dshort] = Shadow
+        f.close()
 
     return Qx, Qy, Qz, Q_total, Q_perp_unc, Q_parl_unc, InPlaneAngleMap, dimXX, dimYY, Shadow_Mask
 
 def SectorMask_AllDetectors(Detector_Panels, Instrument, SiMirror, Config, InPlaneAngleMap, PrimaryAngle, AngleWidth, BothSides):
 
     SectorMask = {}
-    relevant_detectors = Detector_Panels
+    relevant_detectors = list(Detector_Panels)
     if str(Config).find('CvB') != -1:
         relevant_detectors.append('B')
     for dshort in relevant_detectors:
@@ -826,7 +830,7 @@ def AbsScale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighR
     masks = {}
     BB = {}
 
-    relevant_detectors = Detector_Panels
+    relevant_detectors = list(Detector_Panels)
     if str(Config).find('CvB') != -1:
         relevant_detectors.append('B')
 
@@ -903,7 +907,8 @@ def AbsScale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighR
                                 UncScaled_Data[dshort] = unc
                             else:
                                 Scaled_Data[dshort] += ((1E8/MonCounts)/(ABS_Scale*He3Glass_Trans))*data
-                                UncScaled_Data[dshort] += unc           
+                                UncScaled_Data[dshort] += unc
+                        f.close()
                 for dshort in relevant_detectors:
                     UncScaled_Data[dshort] = np.sqrt(UncScaled_Data[dshort])*((1E8/MonCounts)/(ABS_Scale*He3Glass_Trans))/(Number_Files*Plex[dshort]*Solid_Angle[dshort])
         else:
@@ -915,7 +920,7 @@ def AbsScale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighR
 
 def ASCIIlike_Output(Detector_Panels, Instrument, save_path, YesNo_2DFilesPerDetector, Type, ID, Config, Data_AllDetectors, Unc_Data_AllDetectors, QGridPerDetector, GeneralMask):
 
-    relevant_detectors = Detector_Panels
+    relevant_detectors = list(Detector_Panels)
     if str(Config).find('CvB') != -1:
         relevant_detectors.append('B')
 
@@ -1024,7 +1029,7 @@ def VSANS_MakeSlices_and_SaveASCII(Detector_Panels, Instrument, SampleApertureIn
                 QValues_All = {'QX':Qx,'QY':Qy,'QZ':Qz,'Q_total':Q_total,'Q_perp_unc':Q_perp_unc,'Q_parl_unc':Q_parl_unc}
                 Q_min, Q_max, Q_bins = MinMaxQ(Detector_Panels, Instrument, Absolute_Q_min, Absolute_Q_max, Q_total, Config, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain)
                             
-                relevant_detectors = Detector_Panels
+                relevant_detectors = list(Detector_Panels)
                 if str(Config).find('CvB') != -1:
                     relevant_detectors.append('B')
                                 
@@ -1118,7 +1123,7 @@ def VSANS_MakeSlices_and_SaveASCII(Detector_Panels, Instrument, SampleApertureIn
 
 def vSANS_FullPolSlices(save_path, Detector_Panels, Instrument, SiMirror, Slices, SectorCutAngles, AverageQRanges, PolCorrDegree, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, PolCorrUU, PolCorrUU_Unc, PolCorrDU, PolCorrDU_Unc, PolCorrDD, PolCorrDD_Unc, PolCorrUD, PolCorrUD_Unc):
 
-    relevant_detectors = Detector_Panels
+    relevant_detectors = list(Detector_Panels)
     if str(Config).find('CvB') != -1:
         relevant_detectors.append('B')
         AverageQRanges = False
@@ -1175,7 +1180,7 @@ def vSANS_FullPolSlices(save_path, Detector_Panels, Instrument, SiMirror, Slices
 
 def vSANS_HalfPolSlices(Detector_Panels, Instrument, SiMirror, Slices, SectorCutAngles, AverageQRanges, PolType, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, U, U_Unc, D, D_Unc):
 
-    relevant_detectors = Detector_Panels
+    relevant_detectors = list(Detector_Panels)
     if str(Config).find('CvB') != -1:
         relevant_detectors.append('B')
         AverageQRanges = False
@@ -1216,7 +1221,7 @@ def vSANS_HalfPolSlices(Detector_Panels, Instrument, SiMirror, Slices, SectorCut
 
 def vSANS_UnpolSlices(Detector_Panels, Instrument, SiMirror, Slices, SectorCutAngles, AverageQRanges, PolType, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, Unpol, Unpol_Unc):
 
-    relevant_detectors = Detector_Panels
+    relevant_detectors = list(Detector_Panels)
     if str(Config).find('CvB') != -1:
         relevant_detectors.append('B')
         AverageQRanges = False
@@ -1603,7 +1608,7 @@ def TwoDimToOneDim(Detector_Panels, Instrument, Key, Q_min, Q_max, Q_bins, QGrid
     Q_Values = np.linspace(Q_min, Q_max, Q_bins, endpoint=True) + Q_step/2
 
     masks = {}
-    relevant_detectors = Detector_Panels
+    relevant_detectors = list(Detector_Panels)
     if str(Config).find('CvB') != -1:
         relevant_detectors.append('B')
     for dshort in relevant_detectors:
@@ -1763,7 +1768,7 @@ def TwoDimToOneDim(Detector_Panels, Instrument, Key, Q_min, Q_max, Q_bins, QGrid
 
 def ASCIIlike_Output(Detector_Panels, Instrument, save_path, YesNo_2DFilesPerDetector, Type, ID, Config, Data_AllDetectors, Unc_Data_AllDetectors, QGridPerDetector, GeneralMask):
 
-    relevant_detectors = Detector_Panels
+    relevant_detectors = list(Detector_Panels)
     if str(Config).find('CvB') != -1:
         relevant_detectors.append('B')
 
@@ -2029,6 +2034,8 @@ def GetBeamCenter(Detector_Panels, Instrument, input_path, filenumber, dshort, t
         middle_bc_x = int(middle_bc_x*100.0)/100
         middle_bc_y = int(middle_bc_y*100.0)/100
 
+    if f is not None:
+        f.close()
     return middle_bc_x, middle_bc_y
 
 def AssignBeamCenterForScattFile(Detector_Panels, Instrument, input_path, Sample_Name, Config, AlignTrans):
@@ -2070,7 +2077,7 @@ def AllSANS_PolCorrScattFiles(Detector_Panels, Instrument, UsePolCorr, input_pat
         Scaled_Data = np.zeros((8,4,16384))
         UncScaled_Data = np.zeros((8,4,16384))
 
-    relevant_detectors = Detector_Panels
+    relevant_detectors = list(Detector_Panels)
 
     Det_counter = 0
     for dshort in relevant_detectors:
@@ -2188,6 +2195,7 @@ def AllSANS_PolCorrScattFiles(Detector_Panels, Instrument, UsePolCorr, input_pat
                         Pol_Efficiency_V2[CrossSection_Index][:] += [(C*(-SX - 1) + SX + 1)*UT, (C*(SX - 1) - SX + 1)*UT, (C*(-SX + 1) - SX + 1)*UT, (C*(SX + 1) + SX + 1)*UT]
                         Pol_Efficiency_V3[CrossSection_Index][:] += [(C*(-SY - Y) + S + 1)*UT, (C*(SY - Y) - S + 1)*UT, (C*(-SY + Y) - S + 1)*UT, (C*(SY + Y) + S + 1)*UT]
                         HE3_Efficiency[CrossSection_Index][:] += [ 0.0, 0.0, 0.0, UT]
+                    f.close()
 
         Prefactor = inv(Pol_Efficiency) #default for UsePolCorr == 1 and He3CorrectionType == 1
         if UsePolCorr and He3CorrectionType == 0: #old way with X depol before sample and Y depol after sample = 1
@@ -2997,7 +3005,7 @@ def vSANS_Record_DataProcessing(Detector_Panels, Instrument, YesNoManualHe3Entry
 
 def Annular_Average(Detector_Panels, Instrument, save_path, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_total, GeneralMask, ScaledData, ScaledData_Unc):
 
-    relevant_detectors = Detector_Panels
+    relevant_detectors = list(Detector_Panels)
     AverageQRanges = 1
     if str(Config).find('CvB') != -1:
         relevant_detectors.append('B')
