@@ -49,7 +49,6 @@ def HE3_Pol_AtGivenTime(entry_time, HE3_Cell_Summary):
 def vSANS_Record_DataProcessing(save_path, Plex_Name = 'not used', Scatt = {}, BlockBeam = {}, Trans = {}, Pol_Trans = {}, HE3_Cell_Summary = {}, YesNoManualHe3Entry = False, Contents = 'not used'):
                                 
     file_path = os.path.join(save_path, "DataReductionSummary.txt")
-    #file1 = open(save_path + "DataReductionSummary.txt","w+") #**********Remove
     file1 = open(file_path,"w+")
     file1.write("Record of Data Reduction \n")
     file1.write("****************************************** \n")
@@ -829,7 +828,9 @@ def ASCIIlike_Output(Detector_Panels, Instrument, save_path, YesNo_2DFilesPerDet
         print('Outputting {TP} 2D data, {idnum}, {CF} '.format(TP=Type, idnum=ID, CF=Config))        
         ASCII_Combined = np.array([QXData_Combined, QYData_Combined, Int_Combined, DeltaInt_Combined, QZData_Combined, QParlUnc_Combined, QPerpUnc_Combined, Shadow_Combined])
         ASCII_Combined = ASCII_Combined.T
-        np.savetxt(save_path + 'Dim2Scatt_{Samp}_{CF}_{TP}.DAT'.format(Samp=ID, CF=Config, TP=Type,), ASCII_Combined, delimiter = ' ', comments = '', header = 'ASCII data created Mon, Jan 13, 2020 2:39:54 PM')
+        file_name = 'Dim2Scatt_{Samp}_{CF}.DAT'.format(Samp=ID, CF=Config)
+        file_path = os.path.join(save_path, file_name)
+        np.savetxt(file_path, ASCII_Combined, delimiter = ' ', comments = '', header = 'ASCII data created Mon, Jan 13, 2020 2:39:54 PM')
 
     return
 
@@ -997,7 +998,8 @@ def vSANS_FullPolSlices(YesNoShowPlots, save_path, Detector_Panels, Instrument, 
         DD = TwoDimToOneDim(Detector_Panels, Instrument, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, PolCorrDD, PolCorrDD_Unc, Sample, Config, PlotYesNo, AverageQRanges)
         UD = TwoDimToOneDim(Detector_Panels, Instrument, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, PolCorrUD, PolCorrUD_Unc, Sample, Config, PlotYesNo, AverageQRanges)
 
-        SaveTextDataFourCrossSections(save_path, '{corr}'.format(corr = Corr), slice_key, Sample, Config, UU, DU, DD, UD)
+        file_name = 'SliceFullPol_{samp},{cf}_{corr}{slice_key}.txt'.format(samp=Sample, cf=Config, corr=Corr, slice_key=slice_key) 
+        SaveTextDataFourCrossSections(save_path, file_name, slice_key, Sample, Config, UU, DU, DD, UD)
         '''saves data as SliceFullPol_{samp},{cf}_{corr}{slice_key}.txt'''
 
         PlotFourCrossSections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, '{corr}'.format(corr = Corr), slice_key, Sample, Config, UU, DU, DD, UD)
@@ -1652,7 +1654,9 @@ def ASCIIlike_Output(Detector_Panels, Instrument, save_path, YesNo_2DFilesPerDet
                 print('Outputting Unpol data into ASCII-like format for {det}, GroupID = {idnum} '.format(det=dshort, idnum=ID))
                 ASCII_like = np.array([QXData, QYData, Int, DeltaInt, QZData, QParlUnc, QPerpUnc, ShadowHolder])
                 ASCII_like = ASCII_like.T
-                np.savetxt('{TP}Scatt_{Samp}_{CF}_{det}.DAT'.format(TP=Type, Samp=ID, CF=Config, det=dshort), ASCII_like, delimiter = ' ', comments = '', header = 'ASCII data created Mon, Jan 13, 2020 2:39:54 PM')
+                file_name = '{TP}Scatt_{Samp}_{CF}_{det}.DAT'.format(TP=Type, Samp=ID, CF=Config, det=dshort)
+                file_path = os.path.join(save_path, file_name) 
+                np.savetxt(file_path, ASCII_like, delimiter = ' ', comments = '', header = 'ASCII data created Mon, Jan 13, 2020 2:39:54 PM')
            
 
             if dshort == relevant_detectors[0]:
@@ -1681,7 +1685,9 @@ def ASCIIlike_Output(Detector_Panels, Instrument, save_path, YesNo_2DFilesPerDet
         print('Outputting {TP} 2D data, {idnum}, {CF} '.format(TP=Type, idnum=ID, CF=Config))        
         ASCII_Combined = np.array([QXData_Combined, QYData_Combined, Int_Combined, DeltaInt_Combined, QZData_Combined, QParlUnc_Combined, QPerpUnc_Combined, Shadow_Combined])
         ASCII_Combined = ASCII_Combined.T
-        np.savetxt(save_path + 'Dim2Scatt_{Samp}_{CF}_{TP}.DAT'.format(Samp=ID, CF=Config, TP=Type,), ASCII_Combined, delimiter = ' ', comments = '', header = 'ASCII data created Mon, Jan 13, 2020 2:39:54 PM')
+        file_name = '{TP}Scatt_{Samp}_{CF}.DAT'.format(TP=Type, Samp=ID, CF=Config)
+        file_path = os.path.join(save_path, file_name)
+        np.savetxt(file_path, ASCII_Combined, delimiter = ' ', comments = '', header = 'ASCII data created Mon, Jan 13, 2020 2:39:54 PM')
 
     return
 
@@ -1696,7 +1702,9 @@ def SaveTextData(save_path, Type, Slice, Sample, Config, DataMatrix):
     text_output = np.array([Q, Int, IntUnc, Q_Unc, Q_mean, Shadow])
     #text_output = np.array([Q, Int, IntUnc, Q_mean, Q_Unc, Shadow])
     text_output = text_output.T
-    np.savetxt(save_path + 'SixCol_{samp},{cf}_{key}{cut}.txt'.format(samp=Sample, cf = Config, key = Type, cut = Slice), text_output, delimiter = ' ', comments = '', header= 'Q, I, DelI, Q_Unc, Q_mean, Shadow', fmt='%1.4e')
+    file_name = 'Slice{key}_{samp},{cf}_{cut}.txt'.format(key=Type, samp=Sample, cf = Config, cut = Slice)
+    file_path = os.path.join(save_path, file_name)
+    np.savetxt(file_path, text_output, delimiter = ' ', comments = '', header= 'Q, I, DelI, Q_Unc, Q_mean, Shadow', fmt='%1.4e')
   
     return
 
@@ -1711,7 +1719,9 @@ def SaveTextDataUnpol(save_path, Sub, Slice, Sample, Config, DataMatrix):
     text_output = np.array([Q, Int, IntUnc, Q_Unc, Q_mean, Shadow])
     #text_output = np.array([Q, Int, IntUnc, Q_mean, Q_Unc, Shadow])
     text_output = text_output.T
-    np.savetxt(save_path + 'SliceUnpol_{samp},{cf}_{cut}{key}.txt'.format(samp=Sample, cf = Config, cut = Slice, key = Sub), text_output, delimiter = ' ', comments = '', header= 'Q, I, DelI, Q_Unc, Q_mean, Shadow', fmt='%1.4e')
+    file_name = 'SliceUnpol_{samp},{cf}_{cut}{key}.txt'.format(samp=Sample, cf = Config, cut = Slice, key = Sub)
+    file_path = os.path.join(save_path, file_name)
+    np.savetxt(file_path, text_output, delimiter = ' ', comments = '', header= 'Q, I, DelI, Q_Unc, Q_mean, Shadow', fmt='%1.4e')
   
     return
 
@@ -1732,7 +1742,9 @@ def SaveTextDataFourCrossSections(save_path, Type, Slice, Sample, Config, UUMatr
     Shadow = np.ones_like(Q)
     text_output = np.array([Q, UU, UU_Unc, DU, DU_Unc, DD, DD_Unc, UD, UD_Unc, Q_Unc, Q_mean, Shadow])
     text_output = text_output.T
-    np.savetxt(save_path + 'SliceFullPol_{samp},{cf}_{key}{cut}.txt'.format(samp=Sample, cf = Config, key = Type, cut = Slice), text_output,
+    file_name = 'SliceFullPol_{samp},{cf}_{key}{cut}.txt'.format(samp=Sample, cf = Config, key = Type, cut = Slice)
+    file_path = os.path.join(save_path, file_name)
+    np.savetxt(file_path, text_output,
                delimiter = ' ', comments = '', header= 'Q, UU, DelUU, DU, DelDU, DD, DelDD, UD, DelUD, Q_Unc, Q_mean, Shadow', fmt='%1.4e')
   
     return
@@ -1778,7 +1790,9 @@ def PlotFourCrossSections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSe
     plt.ylabel('Intensity')
     plt.title('{slice_type}_{idnum},{cf}'.format(slice_type = Slice, idnum=Sample, cf = Config))
     plt.legend()
-    fig.savefig(save_path + 'SliceFullPol_{samp},{cf}_{corr}{slice_type}.png'.format(samp=Sample, cf = Config, corr = Type, slice_type = Slice))
+    file_name = 'SliceFullPol_{samp},{cf}_{corr}{slice_type}.png'.format(samp=Sample, cf = Config, corr = Type, slice_type = Slice)
+    file_path = os.path.join(save_path, file_name)
+    fig.savefig(file_path)
     if YesNoShowPlots:
         plt.show()
     plt.close()
@@ -2256,7 +2270,9 @@ def vSANS_ProcessFullPolSlices(StrucutrallyIsotropic, Slices, SectorCutAngles, s
         plt.ylabel('Intensity')
         plt.title('Full-Pol Magnetic and Structural Scattering of {samp}'.format(samp=Sample))
         plt.legend()
-        fig.savefig(save_path + 'ResultsFullPol_{samp},{cf}_{key}{width}{sub}.png'.format(samp=Sample, cf = Config,  key = PolType, width = Width, sub = Sub))
+        file_name = 'ResultsFullPol_{samp},{cf}_{key}{width}{sub}.png'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub)    
+        file_path = os.path.join(save_path, file_name)
+        fig.savefig(file_path)
         if YesNoShowPlots:
             plt.show()
         plt.close()
@@ -2268,20 +2284,28 @@ def vSANS_ProcessFullPolSlices(StrucutrallyIsotropic, Slices, SectorCutAngles, s
 
         text_output = np.array([Q, Horz_NSFSum, Horz_NSFSum_Unc, M_Perp, M_Perp_Unc, M_Parl_NSF, M_Parl_NSF_Unc, Q_Unc, Q_mean, Shadow])
         text_output = text_output.T
-        np.savetxt(save_path + 'ResultsFullPol_{samp},{cf}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub), text_output,
+        file_name = 'ResultsFullPol_{samp},{cf}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub)
+        file_path = os.path.join(save_path, file_name)
+        np.savetxt(file_path, text_output,
                delimiter = ' ', comments = '', header= 'Q, Struc, DelStruc, M_Perp, DelM_Perp, M_Parl_NSF, DelM_Parl_NSF, Q_Unc, Q_mean, Shadow', fmt='%1.4e')
 
         text_output2 = np.array([Q, M_Parl_NSF, M_Parl_NSF_Unc, Q_Unc, Q_mean, Shadow])
         text_output2 = text_output2.T
-        np.savetxt(save_path + 'PlotFullPolMparl_{samp},{cf}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub), text_output2,
+        file_name = 'PlotFullPolMparl_{samp},{cf}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub)
+        file_path = os.path.join(save_path, file_name)
+        np.savetxt(file_path, text_output2,
                delimiter = ' ', comments = '', header= 'Q, M_Parl_NSF, DelM_Parl_NSF, Q_Unc, Q_mean, Shadow', fmt='%1.4e')
         text_output3 = np.array([Q, M_Perp, M_Perp_Unc, Q_Unc, Q_mean, Shadow])
         text_output3 = text_output3.T
-        np.savetxt(save_path + 'PlotFullPolMperp_{samp},{cf}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub), text_output3,
+        file_name = 'PlotFullPolMperp_{samp},{cf}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub)
+        file_path = os.path.join(save_path, file_name)
+        np.savetxt(file_path, text_output3,
                delimiter = ' ', comments = '', fmt='%1.4e')
         text_output4 = np.array([Q, Horz_NSFSum, Horz_NSFSum_Unc, Q_Unc, Q_mean, Shadow])
         text_output4 = text_output4.T
-        np.savetxt(save_path + 'PlotFullPolStruc_{samp},{cf}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub), text_output4,
+        file_name = 'PlotFullPolStruc_{samp},{cf}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub)
+        file_path = os.path.join(save_path, file_name)
+        np.savetxt(file_path, text_output4,
                delimiter = ' ', comments = '', header= 'Q, Struc, DelStruc, Q_Unc, Q_mean, Shadow', fmt='%1.4e')
         
     Results = {}
@@ -2500,7 +2524,9 @@ def vSANS_ProcessHalfPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlot
         plt.ylabel('Intensity')
         plt.title('Half-Pol Magnetic and Structural Scattering of {samp}'.format(samp=Sample))
         plt.legend()
-        fig.savefig(save_path + 'ResultsHalfPol_{samp},{cf}_{width}{sub}.png'.format(samp=Sample, cf = Config, width = Width, sub = Sub))
+        file_name = 'ResultsHalfPol_{samp},{cf}_{key}{width}{sub}.png'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub)
+        file_path = os.path.join(save_path, file_name)
+        fig.savefig(file_path)
         if YesNoShowPlots:
             plt.show()
         plt.close()              
@@ -2511,22 +2537,30 @@ def vSANS_ProcessHalfPolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlot
         Shadow = Horz_Data['Shadow']
         text_output = np.array([Q, Struc, Struc_Unc, M_Parl_Div, M_Parl_Div_Unc, M_Parl_Sub, M_Parl_Sub_Unc, Q_Unc, Q_mean, Shadow])
         text_output = text_output.T
-        np.savetxt(save_path + 'ResultsHalfPol_{samp},{cf}_{width}{sub}.txt'.format(samp=Sample, cf = Config, width = Width, sub = Sub), text_output,
+        file_name = 'ResultsHalfPol_{samp},{cf}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub)
+        file_path = os.path.join(save_path, file_name)  
+        np.savetxt(file_path, text_output,
         delimiter = ' ', comments = '', header= 'Q, Struc, DelStruc, M_Parl_Div, DelM_Parl_Div, M_Parl_Sub, DelM_Parl_Sub, Q_Unc, Q_mean, Shadow', fmt='%1.4e')
 
         text_output2 = np.array([Q, M_Parl_Div, M_Parl_Div_Unc, Q_Unc, Q_mean, Shadow])
         text_output2 = text_output2.T
-        np.savetxt(save_path + 'PlotHalfPolMparlDiv_{samp},{cf}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub), text_output2,
+        file_name = 'PlotHalfPolMparlDiv_{samp},{cf}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub)
+        file_path = os.path.join(save_path, file_name)
+        np.savetxt(file_path, text_output2,
         delimiter = ' ', comments = '', header= 'Q, M_Parl_Div, DelM_Parl_Div, Q_Unc, Q_mean, Shadow', fmt='%1.4e')
         
         text_output3 = np.array([Q, M_Parl_Sub, M_Parl_Sub_Unc, Q_Unc, Q_mean, Shadow])
         text_output3 = text_output3.T
-        np.savetxt(save_path + 'PlotHalfPolMparlSub_{samp},{cf}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub), text_output3,
+        file_name = 'PlotHalfPolMparlSub_{samp},{cf}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub)
+        file_path = os.path.join(save_path, file_name)
+        np.savetxt(file_path, text_output3,
         delimiter = ' ', comments = '', fmt='%1.4e')
 
         text_output4 = np.array([Q, Struc, Struc_Unc, Q_Unc, Q_mean, Shadow])
         text_output4 = text_output4.T
-        np.savetxt(save_path + 'PlotHalfPolStruc_{samp},{cf}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub), text_output4,
+        file_name = 'PlotHalfPolStruc_{samp},{cf}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub)
+        file_path = os.path.join(save_path, file_name)
+        np.savetxt(file_path, text_output4,
         delimiter = ' ', comments = '', header= 'Q, M_Parl_Sub, DelM_Parl_Sub, Q_Unc, Q_mean, Shadow', fmt='%1.4e')
 
     Results = {}
@@ -2704,7 +2738,9 @@ def vSANS_ProcessUnpolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots,
         plt.ylabel('Intensity')
         plt.title('Unpol Magnetic and Structural Scattering of {samp}'.format(samp=Sample))
         plt.legend()
-        fig.savefig(save_path + 'ResultsUnpol_{samp},{cf}_{width}{sub}.png'.format(samp=Sample, cf = Config, width = Width, sub = Sub))
+        file_name = 'ResultsUnpol_{samp},{cf}_{key}{width}{sub}.png'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub)
+        file_path = os.path.join(save_path, file_name)  
+        fig.savefig(file_path)
         if YesNoShowPlots:
             plt.show()
         plt.close()              
@@ -2715,17 +2751,23 @@ def vSANS_ProcessUnpolSlices(Slices, SectorCutAngles, save_path, YesNoShowPlots,
         Shadow = Horz_Data['Shadow']
         text_output = np.array([Q, Struc, Struc_Unc, M_Parl_Sub, M_Parl_Sub_Unc, Q_Unc, Q_mean, Shadow])
         text_output = text_output.T
-        np.savetxt(save_path + 'ResultsUnpol_{samp},{cf}_{width}{sub}.txt'.format(samp=Sample, cf = Config, width = Width, sub = Sub), text_output,
+        file_name = 'ResultsUnpol_{samp},{cf}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub)
+        file_path = os.path.join(save_path, file_name)  
+        np.savetxt(file_path, text_output,
                delimiter = ' ', comments = '', header= 'Q, Struc, DelStruc, M_Parl_Sub, DelM_Parl_Sub, Q_Unc, Q_mean, Shadow', fmt='%1.4e')
 
         text_output3 = np.array([Q, M_Parl_Sub, M_Parl_Sub_Unc, Q_Unc, Q_mean, Shadow])
         text_output3 = text_output3.T
-        np.savetxt(save_path + 'PlotUnpolMparlSub_{samp}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub), text_output3,
+        file_name = 'PlotUnpolMparlSub_{samp}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub)
+        file_path = os.path.join(save_path, file_name)
+        np.savetxt(file_path, text_output3,
         delimiter = ' ', comments = '', fmt='%1.4e')
 
         text_output4 = np.array([Q, Struc, Struc_Unc, Q_Unc, Q_mean, Shadow])
         text_output4 = text_output4.T
-        np.savetxt(save_path + 'PlotUnpolStruc_{samp}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub), text_output4,
+        file_name = 'PlotUnpolStruc_{samp}_{key}{width}{sub}.txt'.format(samp=Sample, cf = Config, key = PolType, width = Width, sub = Sub)
+        file_path = os.path.join(save_path, file_name)
+        np.savetxt(file_path, text_output4,
         delimiter = ' ', comments = '', header= 'Q, Struc, DelStruc, Q_Unc, Q_mean, Shadow', fmt='%1.4e')
 
 
@@ -2794,7 +2836,9 @@ def Annular_Average(Detector_Panels, Instrument, save_path, Sample, Config, InPl
     plt.ylabel('Summed Counts')
     plt.title('Annular Average_{qmin}to{qmax}invang'.format(qmin = Q_min, qmax = Q_max))
     plt.legend()
-    fig.savefig(save_path + 'AnnularAverage_{idnum},{cf}.png'.format(idnum=Sample, cf = Config))
+    file_name = 'AnnularAverage_{samp},{cf}.png'.format(samp=Sample, cf = Config)   
+    file_path = os.path.join(save_path, file_name)
+    fig.savefig(file_path)
     plt.show()
     plt.close()
       
