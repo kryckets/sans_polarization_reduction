@@ -51,6 +51,3 @@ htmlcov/
 *.bak
 *.orig
 
-# Generated documentation
-docs/
-*.html
