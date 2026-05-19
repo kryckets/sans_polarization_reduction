@@ -6,72 +6,8 @@ import h5py
 import dateutil
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+import json
 
-#********************************************************************
-#**** Run with defaults, unless have reason to do otherwise *********
-#********************************************************************
-
-'''
-TempDiffAllowedForSharingTrans = 20.0 #Max temperature difference in K to fill in for missing transmission files
-AutoSubtractEmpty = True #Default is True for yes; False for no. Selecting True doesn't cause any issues even if no empties are available.
-YesNoRenameEmpties = True #False = No; True = Yes and will simply rename to Empty
-UseMTCirc = True #Default is True for yes, False for no (which instead subtracts sector-by-sector MT from data)
-He3Only_Check = False #Default False = No (runs full reduction), True = Yes (for helium team's use)
-Absolute_Q_min = 0.005 #Default 0; Will take the maximum of Q_min_Calc from all detectors and this value
-Absolute_Q_max = 0.12 #Default 0.6; Will take the minimum of Q_max_Calc from all detectors and this value
-
-Excluded_Filenumbers = [] #[Use filenumers separated by commas as needed]
-ReAssignBlockBeam = []
-ReAssignEmpty = []
-ReAssignOpen = []
-ReAssignSample = []
-Min_Filenumber = 0 #Default 0
-Max_Filenumber = 1000000 #Default 1000000
-Min_Scatt_Filenumber = Min_Filenumber
-Max_Scatt_Filenumber = Max_Filenumber
-Min_Trans_Filenumber = Min_Filenumber
-Max_Trans_Filenumber = Max_Filenumber
-SampleDescriptionKeywordsToExclude = []
-
-YesNoSetPlotXRange = False #Default is False (no), True = yes
-YesNoSetPlotYRange = False #Default is False (no), True = yes
-PlotXmin = 0.015 #Only used if YesNoSetPlotXRange
-PlotXmax = 0.115 #Only used if YesNoSetPlotXRange
-PlotYmin = 1E-4 #Only used if YesNoSetPlotYRange
-PlotYmax = 1 #Only used if YesNoSetPlotYRange
-
-#The following paramters should rarely be touched (just initialize this cell)
-SampleApertureInMM = True #Override in case sample aperture entered in cm rather than mm
-PreSebtractOpen = False #Default is False for no; True for yes. Subtracts trans-scaled open (if available) from pol-full in attempt to remove main beam spillover.
-Calc_Q_From_Trans = True #Default is True for yes; False for no
-AverageQRanges = False #False for no; True for yes
-YesNoShowPlots = False #False = No and simply saves plots; True = yes and displays plots when code is run
-CompareUnpolCirc = True
-CompareHalfPolSumCirc = True
-CompareFullPolSumCirc = True
-CompareFullPolStruc = True
-CompareFullPolMagnetism = True
-YesNo_2DCombinedFiles = False #Default is False (no), True = yes which can be read using SasView
-YesNo_2DFilesPerDetector = False #Default is False (no), True = yes; Note all detectors will be summed after beamline masking applied and can be read by SasView 4.2.2 (and higher?)
-MidddlePixelBorderHorizontal = 4 #Default = 4
-MidddlePixelBorderVertical = 4 #Default = 4
-ConvertHighResToSubset = True #Default = True for yes (uses only a small subset of the million plus pixels for approximately an 18 x's savings in computing power).
-HighResGain = 100.0
-UsePolCorr = True #Default is True to pol-correct full-pol data, False means no and will only correct for 3He transmission as a function of time.
-He3CorrectionType = 1 #0 for chi, 1 for chi = upsilon (only active if YesNoManualHe3Entry), 2 for upsilon
-YesNoBypassBestGuessPSM = False #Default is False, will bypass to higher (or the highest) PSM value if one (or more) is/are measured
-PSM_Guess = 0.9985 #0.9985 is good for 4 guides, 5.5 angstroms
-Minimum_PSM = 0.01
-YesNoManualHe3Entry = False #False for no (default), True for yes; should not be needed for data taken after July 2019 if He3 cells are properly registered
-New_HE3_Files = [] #[77070, 77297, 77566] #Default is []; These would be the starting files for each new cell IF YesNoManualHe3Entry
-MuValues = [] #[3.105, 3.374, 3.105] #Default is []; Values only used IF YesNoManualHe3Entry; example [3.374, 3.105]=[Fras, Bur]; should not be needed after July 2019
-TeValues = [] #[0.86, 0.86, 0.86] #Default is []; Values only used IF YesNoManualHe3Entry; example [0.86, 0.86]=[Fras, Bur]; should not be needed after July 2019
-#High Res Detector is linked to then Converging Beam option (at 6.7 angstroms)
-HighResMinX = 240 #Default 240
-HighResMaxX = 474 #Default 474
-HighResMinY = 667 #Default 667
-HighResMaxY = 917 #Default 917
-'''
 
 def sans_instrument_selection(Instrument = 'VSANS'):
 
@@ -1616,4 +1552,200 @@ def sans_record_data_processing_steps(save_path, Plex_Name, Scatt, BlockBeam, Tr
     file1.close()
 
     return
+
+def reduction_pipeline(input_path, save_path, Instrument = "VSANS",
+                        UsePolCorr = True, 
+                        SampleDescriptionKeywordsToExclude = None,
+                        TransPanel = None,
+                        YesNoManualHe3Entry=False,
+                        New_HE3_Files = None, 
+                        MuValues = None,
+                        TeValues = None,
+                        Excluded_Filenumbers=None,
+                        Min_Filenumber=0,
+                        Max_Filenumber=1000000,
+                        Min_Scatt_Filenumber=0, 
+                        Max_Scatt_Filenumber=1000000, 
+                        Min_Trans_Filenumber=0, 
+                        Max_Trans_Filenumber=1000000, 
+                        ReAssignBlockBeamIntent=None, 
+                        ReAssignEmptyIntent=None, 
+                        ReAssignOpenIntent=None, 
+                        ReAssignSampleIntent=None, 
+                        YesNoRenameEmpties=True,
+                        TempDiffAllowedForSharingTrans=20.0,
+                        HighResMinX=240, 
+                        HighResMaxX=474, 
+                        HighResMinY=667, 
+                        HighResMaxY=917,
+                        ConvertHighResToSubset=True, 
+                        HighResGain=100.0,
+                        Notes = 'not used',
+                        Starting_PSM = 0.9985,
+                        YesNoBypassBestGuessPSM = False
+):
+        
+        Detector_Panels, TransPanel, Slices = sans_instrument_selection(Instrument = Instrument)
+
+        (Sample_Names, Sample_Bases, Configs, BlockBeamCatalog, ScattCatalog, TransCatalog, Pol_TransCatalog, 
+        AlignDet_Trans, HE3_TransCatalog, start_number, 
+        filenumberlisting) = sans_sort_data_automatic(Detector_Panels = Detector_Panels,
+                                                    input_path = input_path, 
+                                                    Instrument = Instrument,
+                                                    UsePolCorr = UsePolCorr,
+                                                    SampleDescriptionKeywordsToExclude = SampleDescriptionKeywordsToExclude,
+                                                    TransPanel = TransPanel,
+                                                    YesNoManualHe3Entry = YesNoManualHe3Entry,
+                                                    New_HE3_Files = New_HE3_Files, 
+                                                    MuValues = MuValues,
+                                                    TeValues = TeValues,
+                                                    Excluded_Filenumbers=Excluded_Filenumbers,
+                                                    Min_Filenumber= Min_Filenumber,
+                                                    Max_Filenumber=Max_Filenumber,
+                                                    Min_Scatt_Filenumber=Min_Scatt_Filenumber, 
+                                                    Max_Scatt_Filenumber=Max_Scatt_Filenumber, 
+                                                    Min_Trans_Filenumber=Min_Trans_Filenumber, 
+                                                    Max_Trans_Filenumber=Max_Trans_Filenumber, 
+                                                    ReAssignBlockBeamIntent=ReAssignBlockBeamIntent, 
+                                                    ReAssignEmptyIntent=ReAssignEmptyIntent, 
+                                                    ReAssignOpenIntent=ReAssignOpenIntent, 
+                                                    ReAssignSampleIntent=ReAssignSampleIntent, 
+                                                    YesNoRenameEmpties=YesNoRenameEmpties,
+
+
+        )
+
+        AlignDet_Trans = sans_share_align_det_trans_catalog(
+                TempDiffAllowedForSharingTrans = TempDiffAllowedForSharingTrans, 
+                AlignDet_Trans = AlignDet_Trans, 
+                Scatt = ScattCatalog
+                )
+
+        TransCatalog = sans_share_sample_base_trans_catalog(
+                Trans = TransCatalog, 
+                Scatt = ScattCatalog
+                )
+
+        ScattCatalog = sans_share_empty_polbeam_scatt_catalog(Scatt = ScattCatalog)
+
+
+        Pol_TransCatalog = vsans_share_pol_trans_catalog(Detector_Panels = Detector_Panels,
+                                                    Pol_Trans = Pol_TransCatalog, 
+                                                    Scatt = ScattCatalog,
+                                                    input_path = input_path,
+                                                    Instrument = Instrument,
+                                                    SampleDescriptionKeywordsToExclude = SampleDescriptionKeywordsToExclude,
+                                                    TempDiffAllowedForSharingTrans = TempDiffAllowedForSharingTrans
+
+        )
+
+        HE3_TransCatalog = sans_process_he3_trans_catalog(Detector_Panels = Detector_Panels, 
+                                                                Instrument = Instrument,
+                                                                input_path = input_path, 
+                                                                HE3_Trans = HE3_TransCatalog, 
+                                                                BlockBeam = BlockBeamCatalog, 
+                                                                DetectorPanel = TransPanel
+                                                                )
+                                                    
+
+        Pol_TransCatalog = sans_process_pol_trans_catalog(Detector_Panels = Detector_Panels,
+                                                          Instrument = Instrument, 
+                                                          input_path = input_path, 
+                                                          Pol_Trans = Pol_TransCatalog, 
+                                                          BlockBeam = BlockBeamCatalog, 
+                                                          DetectorPanel= TransPanel
+                                                          )  
+        
+
+        TransCatalog = sans_process_trans_catalog(Detector_Panels = Detector_Panels,
+                                                  Instrument = Instrument, 
+                                                  input_path = input_path, 
+                                                  Trans = TransCatalog, 
+                                                  BlockBeam = BlockBeamCatalog, 
+                                                  DetectorPanel = TransPanel
+                                                  )
+    
+
+        Plex_Name, Plex = plex_file(Detector_Panels = Detector_Panels, 
+                                    input_path = input_path,
+                                    start_number = start_number,
+                                    Instrument = Instrument,
+                                    HighResMinX = HighResMinX,
+                                    HighResMaxX = HighResMaxX,
+                                    HighResMinY = HighResMinY,
+                                    HighResMaxY = HighResMaxY,
+                                    ConvertHighResToSubset = ConvertHighResToSubset,
+                                    HighResGain = HighResGain,
+        )   
+
+        HE3_Cell_Summary = he3_decay_curves(save_path = save_path, 
+                                            HE3_Trans = HE3_TransCatalog
+                                            )
+        print(HE3_Cell_Summary)
+
+        Pol_TransCatalog = sans_polarization_supermirror_and_flipper(
+                Pol_Trans = Pol_TransCatalog, 
+                HE3_Cell_Summary = HE3_Cell_Summary, 
+                UsePolCorr = UsePolCorr)
+        
+        Truest_PSM = sans_best_supermirror_polarization(
+                Pol_Trans = Pol_TransCatalog, 
+                UsePolCorr = UsePolCorr, 
+                Starting_PSM = Starting_PSM, 
+                YesNoBypassBestGuessPSM = YesNoBypassBestGuessPSM)
+        
+        sans_record_data_processing_steps(save_path = save_path, 
+                                          Plex_Name = Plex_Name, 
+                                          Scatt = ScattCatalog, 
+                                          BlockBeam = BlockBeamCatalog, 
+                                          Trans = TransCatalog, 
+                                          Pol_Trans = Pol_TransCatalog, 
+                                          HE3_Cell_Summary = HE3_Cell_Summary, 
+                                          YesNoManualHe3Entry = YesNoManualHe3Entry, 
+                                          Contents = Notes,
+                                          )
+ 
+
+        Results = {
+            "input_path": input_path,
+            "save_path": save_path,
+            "status": "Reduction completed successfully.",
+            "Truest_PSM": Truest_PSM,
+            "Sample_Names": Sample_Names,
+            "Sample_Bases": Sample_Bases,
+            "Configs": Configs,
+            "BlockBeamCatalog": BlockBeamCatalog,
+            "ScattCatalog": ScattCatalog,
+            "TransCatalog": TransCatalog,
+            "Pol_TransCatalog": Pol_TransCatalog,
+            "HE3_TransCatalog": HE3_TransCatalog,
+            "HE3_Cell_Summary": HE3_Cell_Summary, 
+            "AlignDet_Trans": AlignDet_Trans,
+            "start_number": start_number,
+            "Detector_Panels": Detector_Panels,
+            "Instrument": Instrument,
+            "SampleDescriptionKeywordsToExclude": SampleDescriptionKeywordsToExclude,
+            "HighResMinX": HighResMinX,
+            "HighResMaxX": HighResMaxX,
+            "HighResMinY": HighResMinY,
+            "HighResMaxY": HighResMaxY,
+            "YesNoManualHe3Entry": YesNoManualHe3Entry,
+            "UsePolCorr": UsePolCorr,
+            "HighResGain": HighResGain,
+            "Slices": Slices,
+            "Plex": Plex,
+        }
+
+        def _json_default(o):
+            if isinstance(o, np.ndarray):
+                return o.tolist()
+            if isinstance(o, (np.integer, np.floating)):
+                return o.item()
+            raise TypeError(f"not JSON-serializable: {type(o).__name__}")
+
+        file_path = os.path.join(save_path, 'ReductionResults.json')
+        with open(file_path, 'w') as f:
+            json.dump(Results, f, indent=2, default=_json_default)
+        print(f"Saved Results to {file_path}")
+        return Results
 
