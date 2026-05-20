@@ -1,8 +1,67 @@
-import os
-import os.path
-import json
-
 def results_dict_unwrapped(Results):
+        """Unpack the ``Results`` dict returned by ``reduction_pipeline``.
+
+        Pulls a fixed set of keys out of ``Results`` and returns them as a
+        positional tuple, in the order expected downstream (e.g. by
+        :func:`polarization_correction_pipeline`). Every key listed below
+        must be present in ``Results``; ``KeyError`` is raised otherwise.
+
+        Parameters
+        ----------
+        Results : dict
+            Required. Output of
+            :func:`sans_reduction_utilites.reduction_functions.reduction_pipeline`
+            (or an equivalently structured dict). Must contain the keys:
+            ``Detector_Panels``, ``Instrument``,
+            ``SampleDescriptionKeywordsToExclude``, ``UsePolCorr``,
+            ``YesNoManualHe3Entry``, ``input_path``, ``save_path``,
+            ``HighResMinX``, ``HighResMaxX``, ``HighResMinY``,
+            ``HighResMaxY``, ``HighResGain``, ``Plex``,
+            ``HE3_Cell_Summary``, ``Slices``, ``Truest_PSM``,
+            ``ScattCatalog``, ``BlockBeamCatalog``, ``Configs``,
+            ``Sample_Names``, ``Sample_Bases``, ``TransCatalog``,
+            ``Pol_TransCatalog``, ``AlignDet_Trans``.
+
+        Returns
+        -------
+        Detector_Panels : list[str]
+            Short panel names.
+        Instrument : str
+            ``'VSANS'`` or ``'NG7SANS'``.
+        SampleDescriptionKeywordsToExclude : list[str] or None
+            Keywords stripped from sample descriptions.
+        UsePolCorr : bool
+            Whether polarization correction is enabled.
+        YesNoManualHe3Entry : bool
+            Whether manual 3He values were used.
+        input_path : str
+            Directory of raw NeXus files.
+        save_path : str
+            Output directory.
+        HighResMinX, HighResMaxX, HighResMinY, HighResMaxY : int
+            High-resolution back-detector pixel bounds.
+        HighResGain : float
+            Gain factor for the back detector.
+        Plex : dict[str, np.ndarray]
+            Per-panel plex arrays.
+        HE3_Cell_Summary : dict
+            3He cell parameter summary keyed by insertion time.
+        Slices : list[str]
+            Slice keys (``'Vert'``, ``'Horz'``, ``'Diag'``, ``'Circ'``).
+        Truest_PSM : float
+            Best supermirror polarization estimate.
+        ScattCatalog, BlockBeamCatalog, TransCatalog, Pol_TransCatalog, AlignDet_Trans : dict
+            The five run catalogs built during reduction.
+        Configs : dict[str, int]
+            Configuration label -> representative file number.
+        Sample_Names : list[str]
+        Sample_Bases : list[str]
+
+        Raises
+        ------
+        KeyError
+            If any required key is missing from ``Results``.
+        """
         Detector_Panels = Results["Detector_Panels"]
         Instrument = Results["Instrument"]
         SampleDescriptionKeywordsToExclude = Results["SampleDescriptionKeywordsToExclude"]

@@ -9,6 +9,25 @@ import json
 
 
 def sans_instrument_selection(Instrument = 'VSANS'):
+    """Resolve the detector-panel layout and default slice keys for an instrument.
+
+    Parameters
+    ----------
+    Instrument : str, optional
+        Instrument identifier; must contain ``'VSANS'`` or ``'NG7SANS'``
+        (default ``'VSANS'``).
+
+    Returns
+    -------
+    Detector_Panels : list[str]
+        Short panel names for the instrument (e.g. ``['MT','MB','MR',...]``
+        for VSANS, ``['Full_Panel']`` for NG7SANS).
+    TransPanel : str
+        Short name of the panel used to integrate transmissions
+        (``'MR'`` for VSANS, ``'Full_Panel'`` for NG7SANS).
+    Slices : list[str]
+        Default slice keys (``['Vert','Horz','Diag','Circ']``).
+    """
 
     Slices = ["Vert", "Horz", "Diag", "Circ"]
     if 'VSANS' in Instrument:
@@ -25,8 +44,27 @@ def sans_instrument_selection(Instrument = 'VSANS'):
     return Detector_Panels, TransPanel, Slices
 
 def get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber):
-    # Returns an open h5py.File handle or None. Callers MUST close the
-    # returned handle (or use it inside a `with`-block) to avoid leaks.
+    """Open the NeXus file for ``filenumber`` and return an h5py handle.
+
+    Returns ``None`` if the file does not exist. The caller is responsible
+    for closing the returned handle (or using it inside a ``with``-block).
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names (kept for API parity; not used here).
+    Instrument : str
+        Required. ``'VSANS'`` or ``'NG7SANS'``; selects the file extension
+        (``.nxs.ngv`` vs ``.nxs.ng7``).
+    input_path : str
+        Required. Directory containing the raw NeXus files.
+    filenumber : int
+        Required. Run number used to build the file name.
+
+    Returns
+    -------
+    h5py.File or None
+    """
     if 'VSANS' in Instrument:
         filename = "sans" + str(filenumber) + ".nxs.ngv"
     elif 'NG7SANS' in Instrument:
@@ -39,6 +77,43 @@ def get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber):
 
 
 def sans_sample_base_name_descrip(Detector_Panels, Instrument, SampleDescriptionKeywordsToExclude, input_path, filenumber):
+    """Derive sample names and metadata from the NeXus file description string.
+
+    Reads the raw sample description, strips out polarization tags
+    (``T_UU``, ``S_DU``, etc.), the configuration string, the temperature
+    and voltage substrings, and any user-supplied keywords, and returns
+    both the bare base name and a name decorated with measured voltage
+    and/or temperature.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Forwarded to :func:`get_by_filenumber`.
+    Instrument : str
+        Required. ``'VSANS'`` or ``'NG7SANS'``.
+    SampleDescriptionKeywordsToExclude : Iterable[str]
+        Required. Substrings to strip from the description.
+    input_path : str
+        Required. Directory containing raw NeXus files.
+    filenumber : int
+        Required. Run number to read.
+
+    Returns
+    -------
+    Sample_Base : str
+        Bare sample name with all decorations removed.
+    Sample_Name : str
+        Sample name decorated with voltage and/or temperature when those
+        DAS log entries are present.
+    Descrip : str
+        Cleaned-up raw description string.
+    Listed_Config : str
+        Configuration label from ``DAS_logs/configuration/key``.
+    Desired_Temp : str
+        Desired primary-node temperature (default ``'295.0'``).
+    Voltage : str
+        Adam4021 voltage if present (default ``'na'``).
+    """
 
     record_temp = 0
     record_adam4021 = 0
@@ -112,6 +187,49 @@ def sans_sample_base_name_descrip(Detector_Panels, Instrument, SampleDescription
     return Sample_Base, Sample_Name, Descrip, Listed_Config, Desired_Temp, Voltage
 
 def sans_purpose_intent_polarization_solenoid(Detector_Panels, Instrument, UsePolCorr, input_path, filenumber):
+    """Classify a run by purpose, intent, polarization state, and solenoid state.
+
+    For VSANS, reads dedicated DAS log entries; for NG7SANS, falls back to
+    keyword sniffing on the sample description. The combined front + back
+    flipper directions are mapped to one of ``'UNPOL'``, ``'Front_U'``,
+    ``'Front_D'``, ``'Back_U'``, ``'Back_D'``, ``'UU'``, ``'DU'``, ``'DD'``,
+    ``'UD'``. When ``UsePolCorr`` is true and the description ends in
+    a polarized tag (``S_UU``, ``T_DU``, ...), that tag overrides the
+    state.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Forwarded to :func:`get_by_filenumber`.
+    Instrument : str
+        Required. ``'VSANS'`` or ``'NG7SANS'``.
+    UsePolCorr : bool or int
+        Required. If truthy, allow the description tag to override the
+        polarization state.
+    input_path : str
+        Required. Directory containing raw NeXus files.
+    filenumber : int
+        Required. Run number to read.
+
+    Returns
+    -------
+    SiMirror : str
+        ``'IN'``/``'OUT'`` or ``'UNKNOWN'``.
+    Purpose : str
+        One of ``'SCATTERING'``, ``'TRANSMISSION'``, ``'HE3'``,
+        ``'Empty'``, ``'Blocked'``, or ``'UNKNOWN'``.
+    Intent : str
+        ``'Sample'``, ``'Empty'``, ``'Blocked'``, ``'Open'``, or
+        ``'UNKNOWN'`` (with ``' Beam'`` stripped).
+    PolarizationState : str
+        Polarization tag as described above.
+    FrontPolDirection : str
+        Raw front flipper direction (``'UP'``/``'DOWN'``/``'UNPOLARIZED'``).
+    BackPolDirection : str
+        Raw back flipper direction.
+    SolenoidPosition : str
+        ``'IN'`` if any back-pol direction is set, else ``'OUT'``.
+    """
 
     SiMirror = 'UNKNOWN'
     Purpose = 'UNKNOWN'
@@ -195,7 +313,32 @@ def sans_purpose_intent_polarization_solenoid(Detector_Panels, Instrument, UsePo
 
 
 def sans_config_id(Detector_Panels, Instrument, input_path, filenumber):
-    
+    """Build a short configuration identifier from instrument geometry.
+
+    For VSANS, encodes guides, front/middle carriage distances and
+    wavelength (e.g. ``'5Gd450cmF1650cmM6Ang'``); ``'CvB'`` (converging
+    beam) is substituted for the guide count when the guide log contains
+    ``'CONV'``. For NG7SANS, encodes guides, detector distance and
+    wavelength.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Forwarded to :func:`get_by_filenumber`.
+    Instrument : str
+        Required. ``'VSANS'`` or ``'NG7SANS'``.
+    input_path : str
+        Required. Directory containing raw NeXus files.
+    filenumber : int
+        Required. Run number to read.
+
+    Returns
+    -------
+    Configuration_ID : str
+        Short configuration label (``'UNKNOWN'`` if the wavelength entry
+        is not finite or the file is missing).
+    """
+
     Configuration_ID = 'UNKNOWN'
     f = get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
     if f is not None:
@@ -222,10 +365,73 @@ def sans_config_id(Detector_Panels, Instrument, input_path, filenumber):
     return Configuration_ID
 
 def sans_sort_data_automatic(Detector_Panels, input_path, Instrument='VSANS', UsePolCorr=True, SampleDescriptionKeywordsToExclude=None, TransPanel=None, YesNoManualHe3Entry=False, New_HE3_Files=None, MuValues=None, TeValues=None, Excluded_Filenumbers=None, Min_Filenumber=0, Max_Filenumber=1000000, Min_Scatt_Filenumber=0, Max_Scatt_Filenumber=1000000, Min_Trans_Filenumber=0, Max_Trans_Filenumber=1000000, ReAssignBlockBeamIntent=None, ReAssignEmptyIntent=None, ReAssignOpenIntent=None, ReAssignSampleIntent=None, YesNoRenameEmpties=True):
-    #Uses get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
-    #Uses sans_sample_base_name_descrip(Detector_Panels, Instrument, input_path, filenumber)
-    #Uses sans_purpose_intent_polarization_solenoid(Detector_Panels, Instrument, UsePolCorr, input_path, filenumber)
-    #Uses sans_config_id(Detector_Panels, Instrument, input_path, filenumber)
+    """Walk ``input_path`` and build catalogs of every relevant SANS run.
+
+    For each file in range, classifies it via :func:`sans_config_id` and
+    :func:`sans_purpose_intent_polarization_solenoid` and accumulates it
+    into one of the per-purpose catalogs (block-beam, scatt, trans,
+    pol-trans, align-det-trans, 3He-trans).
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names for the instrument.
+    input_path : str
+        Required. Directory containing raw NeXus files.
+    Instrument : str, optional
+        ``'VSANS'`` or ``'NG7SANS'`` (default ``'VSANS'``).
+    UsePolCorr : bool, optional
+        Forwarded to :func:`sans_purpose_intent_polarization_solenoid`
+        (default ``True``).
+    SampleDescriptionKeywordsToExclude : list[str] or None, optional
+        Keywords stripped from sample descriptions (default ``None`` ->
+        empty list).
+    TransPanel : str or None, optional
+        Transmission panel; derived from ``Instrument`` if ``None``
+        (default ``None``).
+    YesNoManualHe3Entry : bool, optional
+        If true, take cell parameters from ``New_HE3_Files``/``MuValues``/
+        ``TeValues`` rather than NeXus entries (default ``False``).
+    New_HE3_Files : list[int] or None, optional
+        Manually flagged 3He cell-load files (default ``None`` -> empty).
+    MuValues : list[float] or None, optional
+        Manual ``Mu`` values, one per cell load (default ``None`` -> empty).
+    TeValues : list[float] or None, optional
+        Manual ``Te`` values, one per cell load (default ``None`` -> empty).
+    Excluded_Filenumbers : list[int] or None, optional
+        Files to skip entirely (default ``None`` -> empty).
+    Min_Filenumber, Max_Filenumber : int, optional
+        Global file-number bounds (defaults 0 and 1000000).
+    Min_Scatt_Filenumber, Max_Scatt_Filenumber : int, optional
+        Bounds restricting which scattering runs are kept (defaults 0 and
+        1000000).
+    Min_Trans_Filenumber, Max_Trans_Filenumber : int, optional
+        Bounds restricting which transmission runs are kept (defaults 0
+        and 1000000).
+    ReAssignBlockBeamIntent, ReAssignEmptyIntent, ReAssignOpenIntent, ReAssignSampleIntent : list[int] or None, optional
+        Override the auto-detected ``Intent`` for the listed file numbers
+        (each default ``None`` -> empty).
+    YesNoRenameEmpties : bool, optional
+        Rename any ``Intent == 'Empty'`` runs to ``Sample_Name = 'Empty'``
+        (default ``True``).
+
+    Returns
+    -------
+    Sample_Names : list[str]
+    Sample_Bases : list[str]
+    Configs : dict[str, int]
+        ``Config -> representative file number``.
+    BlockBeam : dict
+    Scatt : dict
+    Trans : dict
+    Pol_Trans : dict
+    AlignDet_Trans : dict
+    HE3_Trans : dict
+    start_number : int
+        First file number that passed all filters.
+    FileNumberList : list[int]
+        All file numbers ingested (always starts with 0).
+    """
     
     # Set defaults for None parameters from module-level values
     if SampleDescriptionKeywordsToExclude is None:
@@ -589,6 +795,31 @@ def sans_sort_data_automatic(Detector_Panels, input_path, Instrument='VSANS', Us
     return Sample_Names, Sample_Bases, Configs, BlockBeam, Scatt, Trans, Pol_Trans, AlignDet_Trans, HE3_Trans, start_number, FileNumberList
 
 def sans_share_align_det_trans_catalog(TempDiffAllowedForSharingTrans=20.0, AlignDet_Trans=None, Scatt=None):
+    """Fill in missing alignment transmissions by borrowing from sibling samples.
+
+    For every (sample, config) entry in the scattering catalog that has no
+    matching aligned-transmission entry, this seeds the entry with empty
+    placeholders. Then, for any panel/polarization slot still set to
+    ``'NA'``, it looks for another sample with the same base name and a
+    temperature within ``TempDiffAllowedForSharingTrans`` K, and copies
+    that sample's transmission file number.
+
+    Parameters
+    ----------
+    TempDiffAllowedForSharingTrans : float, optional
+        Maximum temperature difference (K) between two samples for the
+        donor's transmission to be reused (default 20.0).
+    AlignDet_Trans : dict or None, optional
+        Aligned-transmission catalog to mutate (default ``None`` -> ``{}``).
+    Scatt : dict or None, optional
+        Scattering catalog used to seed missing entries (default ``None``
+        -> ``{}``).
+
+    Returns
+    -------
+    AlignDet_Trans : dict
+        Updated aligned-transmission catalog.
+    """
     # Set defaults for None parameters
     if AlignDet_Trans is None:
         AlignDet_Trans = {}
@@ -659,6 +890,27 @@ def sans_share_align_det_trans_catalog(TempDiffAllowedForSharingTrans=20.0, Alig
     return AlignDet_Trans
 
 def sans_share_sample_base_trans_catalog(Trans=None, Scatt=None):
+    """Fill in missing scaling transmissions by borrowing within the same base.
+
+    Mirrors :func:`sans_share_align_det_trans_catalog` for the scaling
+    transmission catalog: any (sample, config) lacking ``Unpol_Files`` or
+    ``U_Files`` is back-filled with the first matching entry from another
+    sample sharing the same ``Sample_Base`` in the same configuration.
+    Temperature is not considered here.
+
+    Parameters
+    ----------
+    Trans : dict or None, optional
+        Transmission catalog to mutate (default ``None`` -> ``{}``).
+    Scatt : dict or None, optional
+        Scattering catalog used to seed missing entries (default ``None``
+        -> ``{}``).
+
+    Returns
+    -------
+    Trans : dict
+        Updated transmission catalog.
+    """
     # Set defaults for None parameters
     if Trans is None:
         Trans = {}
@@ -715,6 +967,25 @@ def sans_share_sample_base_trans_catalog(Trans=None, Scatt=None):
     return Trans
 
 def sans_share_empty_polbeam_scatt_catalog(Scatt=None):
+    """For empty-cell entries, mirror missing polarized cross-sections.
+
+    On samples whose ``Intent`` contains ``'Empty'``, this fills in any
+    missing ``UU``/``DD`` (each from the other) and any missing ``UD``/``DU``
+    (each from the other), copying both the file lists and the matching
+    measurement times. Half-pol ``U``/``D`` are mirrored similarly (file
+    lists only). Useful when only one spin state was measured on the empty
+    cell but full-pol reduction requires all four.
+
+    Parameters
+    ----------
+    Scatt : dict or None, optional
+        Scattering catalog to mutate (default ``None`` -> ``{}``).
+
+    Returns
+    -------
+    Scatt : dict
+        Updated scattering catalog.
+    """
     # Set defaults for None parameters
     if Scatt is None:
         Scatt = {}
@@ -743,6 +1014,39 @@ def sans_share_empty_polbeam_scatt_catalog(Scatt=None):
     return Scatt
 
 def vsans_share_pol_trans_catalog(Detector_Panels, Pol_Trans, Scatt, input_path, Instrument = 'VSANS', SampleDescriptionKeywordsToExclude = [], TempDiffAllowedForSharingTrans = 20.0):
+    """Fill in missing polarized-transmission entries from sibling samples.
+
+    For every sample with a UU scatt run but no pol-trans entry, this
+    seeds a blank ``Pol_Trans`` record. Then, for any sample whose
+    ``T_UU`` file is still ``'NA'``, it looks for another sample with the
+    same base name, the same voltage, and a temperature within
+    ``TempDiffAllowedForSharingTrans`` K that has a complete set of
+    ``T_UU``/``T_DU``/``T_DD``/``T_UD`` files, and copies that record
+    wholesale.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Forwarded to :func:`sans_sample_base_name_descrip`.
+    Pol_Trans : dict
+        Required. Pol-trans catalog to mutate.
+    Scatt : dict
+        Required. Scattering catalog used to seed missing entries.
+    input_path : str
+        Required. Directory containing raw NeXus files.
+    Instrument : str, optional
+        ``'VSANS'`` or ``'NG7SANS'`` (default ``'VSANS'``).
+    SampleDescriptionKeywordsToExclude : list[str], optional
+        Keywords stripped from sample descriptions (default ``[]``).
+    TempDiffAllowedForSharingTrans : float, optional
+        Maximum temperature difference (K) for two samples to share a
+        polarized transmission (default 20.0).
+
+    Returns
+    -------
+    Pol_Trans : dict
+        Updated pol-trans catalog.
+    """
 
     for Sample in Scatt:
         for Config in Scatt[Sample]['Config(s)']:
@@ -773,10 +1077,38 @@ def vsans_share_pol_trans_catalog(Detector_Panels, Pol_Trans, Scatt, input_path,
     return Pol_Trans
 
 def sans_calc_abs_trans_block_beam_list(Detector_Panels, Instrument, input_path, trans_filenumber, BBList, DetectorPanel):
-    #Uses sans_config_id(Detector_Panels, Instrument, input_path, trans_filenumber) and
-    #sans_make_trans_mask(Detector_Panels, Instrument, input_path, filenumber, Config, DetectorPanel) and
-    #sans_blocked_beam_counts_per_second_list_of_files(Detector_Panels, Instrument, input_path, filelist, Config) and 
-    #sans_attenuator_table(Instrument, wavelength, attenuation)
+    """Compute the absolute transmission of one file under a beam-stop mask.
+
+    Sums the counts inside the transmission mask (built by
+    :func:`sans_make_trans_mask`), subtracts a time-scaled block-beam
+    background (computed from ``BBList``), and divides by the monitor
+    counts and the attenuator transmission (from
+    :func:`sans_attenuator_table`).
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str
+        Required. ``'VSANS'`` or ``'NG7SANS'``.
+    input_path : str
+        Required. Directory containing raw NeXus files.
+    trans_filenumber : int
+        Required. Transmission run number to integrate.
+    BBList : Sequence[int] or dict
+        Required. Either a list of block-beam file numbers (typical) or
+        the per-config block-beam dict from which an ``ExampleFile`` is
+        read.
+    DetectorPanel : str
+        Required. Short panel on which to apply the transmission mask.
+
+    Returns
+    -------
+    abs_trans : float
+        Monitor-normalized, attenuator-corrected transmission.
+    abs_trans_unc : float
+        Propagated Poisson uncertainty.
+    """
 
     Config = sans_config_id(Detector_Panels, Instrument, input_path, trans_filenumber)
 
@@ -819,6 +1151,35 @@ def sans_calc_abs_trans_block_beam_list(Detector_Panels, Instrument, input_path,
     return abs_trans, abs_trans_unc
 
 def sans_make_trans_mask(Detector_Panels, Instrument, input_path, filenumber, Config, DetectorPanel):
+    """Build a per-panel mask selecting the direct-beam region for transmission.
+
+    Computes the pixel-to-beam-center radial distance using the geometry
+    of ``filenumber`` and sets the mask to 1.0 inside ``1.2 * R_beamstop/2``
+    (or ``2.0 * R_beamstop/2`` for converging-beam configurations) on the
+    panel matching ``DetectorPanel``. All other panels return zero masks.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str
+        Required. ``'VSANS'`` or ``'NG7SANS'``.
+    input_path : str
+        Required. Directory containing raw NeXus files.
+    filenumber : int
+        Required. Run number used to read the geometry.
+    Config : str
+        Required. Configuration label; ``'CvB'`` widens the mask and
+        adds detector ``'B'`` to the panel list.
+    DetectorPanel : str
+        Required. Short panel on which to mark direct-beam pixels.
+
+    Returns
+    -------
+    mask_it : dict[str, np.ndarray]
+        Per-panel float arrays (1.0 inside the beam-stop region on
+        ``DetectorPanel``, 0.0 elsewhere).
+    """
 
     mask_it = {}
     relevant_detectors = list(Detector_Panels)
@@ -912,6 +1273,38 @@ def sans_make_trans_mask(Detector_Panels, Instrument, input_path, filenumber, Co
     return mask_it
 
 def sans_blocked_beam_counts_per_second_list_of_files(Detector_Panels, Instrument, input_path, filelist, Config, examplefilenumber):
+    """Sum block-beam files and return per-panel counts/second arrays.
+
+    Twin of the function with the same name in
+    ``polarization_correction_functions.py``: accumulates counts and live
+    time across ``filelist``, then divides to obtain a counts-per-second
+    map per panel. If ``filelist`` is empty or unusable, arrays of zeros
+    matching ``examplefilenumber`` are returned.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str
+        Required. ``'VSANS'`` or ``'NG7SANS'``.
+    input_path : str
+        Required. Directory containing raw NeXus files.
+    filelist : Sequence[int]
+        Required. Block-beam run numbers to sum.
+    Config : str
+        Required. Configuration label; ``'CvB'`` triggers inclusion of the
+        back detector.
+    examplefilenumber : int
+        Required. Fallback run number used to size the zero arrays when
+        no block-beam files are usable.
+
+    Returns
+    -------
+    BB_CountsPerSecond : dict[str, np.ndarray]
+        Per-panel counts/second.
+    BB_Unc : dict[str, np.ndarray]
+        Per-pixel uncertainty (sqrt(counts)/seconds).
+    """
 
     BB_Counts = {}
     BB_Unc = {}
@@ -963,6 +1356,30 @@ def sans_blocked_beam_counts_per_second_list_of_files(Detector_Panels, Instrumen
     return BB_CountsPerSecond, BB_Unc #returns empty list or 2D, detector-panel arrays
 
 def sans_attenuator_table(Instrument, wavelength, attenuation):
+    """Look up the attenuator transmission factor for an instrument setup.
+
+    Uses hard-coded VSANS and NG7SANS attenuator tables indexed by
+    wavelength (Å) and number of dropped attenuators. The result is
+    linearly interpolated in wavelength between the two nearest
+    tabulated rows. Wavelength is clamped to the tabulated range
+    (4.52-19 Å for VSANS, 5-17 Å for NG7SANS; VSANS additionally
+    supports two sentinel wavelengths 5300 and 6200000).
+
+    Parameters
+    ----------
+    Instrument : str
+        Required. ``'VSANS'`` or ``'NG7SANS'``.
+    wavelength : float
+        Required. Wavelength in Angstroms.
+    attenuation : int or float
+        Required. Number of attenuators dropped (clamped to 0..15 for
+        VSANS, 0..10 for NG7SANS).
+
+    Returns
+    -------
+    Trans : float
+        Attenuator transmission factor (1.0 when none are dropped).
+    """
 
     Trans = 1.0
     if 'VSANS' in Instrument:
@@ -1058,6 +1475,34 @@ def sans_attenuator_table(Instrument, wavelength, attenuation):
     return Trans
 
 def sans_process_he3_trans_catalog(Detector_Panels, Instrument='VSANS', input_path=None, HE3_Trans=None, BlockBeam=None, DetectorPanel=None):
+    """Compute 3He IN/OUT transmission ratios for every cell-load entry.
+
+    For each (HE3_IN, HE3_OUT) file pair in ``HE3_Trans``, calls
+    :func:`sans_calc_abs_trans_block_beam_list` on each and stores the
+    ratio (``IN / OUT``) in a new ``'Transmission'`` list on the cell
+    entry. Block-beam files are taken from the corresponding configuration
+    in ``BlockBeam`` when available (trans files preferred, then scatt).
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str, optional
+        ``'VSANS'`` or ``'NG7SANS'`` (default ``'VSANS'``).
+    input_path : str or None, optional
+        Directory containing raw NeXus files (default ``None``).
+    HE3_Trans : dict or None, optional
+        3He transmission catalog to mutate (default ``None`` -> ``{}``).
+    BlockBeam : dict or None, optional
+        Block-beam catalog (default ``None`` -> ``{}``).
+    DetectorPanel : str or None, optional
+        Panel used to integrate transmissions (default ``None``).
+
+    Returns
+    -------
+    HE3_Trans : dict
+        Input catalog with new ``'Transmission'`` lists added.
+    """
     # Set defaults for None parameters
     if HE3_Trans is None:
         HE3_Trans = {}
@@ -1087,6 +1532,33 @@ def sans_process_he3_trans_catalog(Detector_Panels, Instrument='VSANS', input_pa
     return HE3_Trans
 
 def sans_process_pol_trans_catalog(Detector_Panels, Instrument='VSANS', input_path=None, Pol_Trans=None, BlockBeam=None, DetectorPanel=None):
+    """Compute polarized transmissions (UU/DU/DD/UD divided by SM) per sample.
+
+    For each (UU, DU, DD, UD, SM) file tuple in ``Pol_Trans[Samp]``,
+    integrates each file via :func:`sans_calc_abs_trans_block_beam_list`
+    and stores ``X / SM`` on ``Pol_Trans[Samp]['T_X']['Trans']`` (plus the
+    raw SM count on ``T_SM['Trans_Cts']``).
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str, optional
+        ``'VSANS'`` or ``'NG7SANS'`` (default ``'VSANS'``).
+    input_path : str or None, optional
+        Directory containing raw NeXus files (default ``None``).
+    Pol_Trans : dict or None, optional
+        Pol-trans catalog to mutate (default ``None`` -> ``{}``).
+    BlockBeam : dict or None, optional
+        Block-beam catalog (default ``None`` -> ``{}``).
+    DetectorPanel : str or None, optional
+        Panel used to integrate transmissions (default ``None``).
+
+    Returns
+    -------
+    Pol_Trans : dict
+        Input catalog with new ``'Trans'``/``'Trans_Cts'`` lists added.
+    """
     # Set defaults for None parameters
     if Pol_Trans is None:
         Pol_Trans = {}
@@ -1133,6 +1605,34 @@ def sans_process_pol_trans_catalog(Detector_Panels, Instrument='VSANS', input_pa
     return Pol_Trans
 
 def sans_process_trans_catalog(Detector_Panels, Instrument='VSANS', input_path=None, Trans=None, BlockBeam=None, DetectorPanel=None):
+    """Compute scaling transmission counts for every (sample, config) entry.
+
+    For each ``Unpol_Files`` and ``U_Files`` list in the transmission
+    catalog, calls :func:`sans_calc_abs_trans_block_beam_list` to compute
+    a block-beam-subtracted transmission, and stores the result on
+    ``Unpol_Trans_Cts`` / ``U_Trans_Cts`` lists.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str, optional
+        ``'VSANS'`` or ``'NG7SANS'`` (default ``'VSANS'``).
+    input_path : str or None, optional
+        Directory containing raw NeXus files (default ``None``).
+    Trans : dict or None, optional
+        Transmission catalog to mutate (default ``None`` -> ``{}``).
+    BlockBeam : dict or None, optional
+        Block-beam catalog (default ``None`` -> ``{}``).
+    DetectorPanel : str or None, optional
+        Panel used to integrate transmissions (default ``None``).
+
+    Returns
+    -------
+    Trans : dict
+        Input catalog with new ``'Unpol_Trans_Cts'`` / ``'U_Trans_Cts'``
+        lists added.
+    """
     # Set defaults for None parameters
     if Trans is None:
         Trans = {}
@@ -1169,6 +1669,39 @@ def sans_process_trans_catalog(Detector_Panels, Instrument='VSANS', input_path=N
     return Trans
 
 def plex_file(Detector_Panels, input_path, start_number, Instrument='VSANS', HighResMinX=240, HighResMaxX=474, HighResMinY=667, HighResMaxY=917, ConvertHighResToSubset=True, HighResGain=100.0):
+    """Load the detector-efficiency (PLEX) file, or fall back to ones-arrays.
+
+    Looks for a file in ``input_path`` whose name begins with ``PLEX``.
+    If found, returns the per-panel detector arrays (optionally cropping
+    the ``'B'`` panel to ``[HighRes* bounds]``). If no PLEX file exists,
+    falls back to ones-arrays sized from ``start_number``.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    input_path : str
+        Required. Directory to search for the PLEX file and as the source
+        for fallback geometry.
+    start_number : int
+        Required. Run number used to size the fallback ones-arrays.
+    Instrument : str, optional
+        ``'VSANS'`` or ``'NG7SANS'`` (default ``'VSANS'``).
+    HighResMinX, HighResMaxX, HighResMinY, HighResMaxY : int, optional
+        High-resolution back-detector pixel bounds (defaults 240, 474,
+        667, 917).
+    ConvertHighResToSubset : bool, optional
+        Crop the ``'B'`` panel to those bounds (default ``True``).
+    HighResGain : float, optional
+        Kept for API parity; not used here (default 100.0).
+
+    Returns
+    -------
+    filename : str
+        Name of the PLEX file used, or ``'0'`` if a fallback was used.
+    PlexData : dict[str, np.ndarray]
+        Per-panel plex arrays.
+    """
 
     PlexData = {}
     filename = '0'
@@ -1233,14 +1766,52 @@ def plex_file(Detector_Panels, input_path, start_number, Instrument='VSANS', Hig
     return filename, PlexData
 
 def He3Decay_func(t, p, gamma):
-    
+    """Exponential 3He polarization decay model ``p * exp(-t / gamma)``.
+
+    Used as the model function for ``scipy.optimize.curve_fit`` inside
+    :func:`he3_decay_curves`.
+
+    Parameters
+    ----------
+    t : float or np.ndarray
+        Required. Elapsed time in hours.
+    p : float
+        Required. Initial atomic polarization.
+    gamma : float
+        Required. Decay constant in hours.
+
+    Returns
+    -------
+    float or np.ndarray
+    """
+
     return p * np.exp(-t / gamma)
 
 def he3_decay_curves(save_path, HE3_Trans):
-    '''
-    #Uses predefined He3Decay_func
-    #Creates and returns HE3_Cell_Summary
-    '''
+    """Fit each cell's atomic-polarization decay and save diagnostic plots.
+
+    For every cell in ``HE3_Trans``, inverts the measured IN/OUT
+    transmissions back to atomic polarization via the cell's ``Mu`` and
+    ``Te``, fits :func:`He3Decay_func` (or falls back to ``gamma = 1000``
+    when only one point exists), records ``Atomic_P0``, ``Gamma(hours)``,
+    derived neutron polarization, and uncertainties in
+    ``HE3_Cell_Summary``, and saves two PNGs per cell (atomic-pol fit and
+    predicted T_MAJ/T_MIN).
+
+    Parameters
+    ----------
+    save_path : str
+        Required. Output directory for the PNG plots.
+    HE3_Trans : dict
+        Required. 3He transmission catalog (output of
+        :func:`sans_process_he3_trans_catalog`).
+
+    Returns
+    -------
+    HE3_Cell_Summary : dict
+        ``insert_time -> {'Atomic_P0', 'Atomic_P0_Unc', 'Gamma(hours)',
+        'Gamma_Unc', 'Mu', 'Te', 'Name', 'Neutron_P0', 'Neutron_P0_Unc'}``.
+    """
     HE3_Cell_Summary = {}
     entry_number = 0
     for entry in HE3_Trans:
@@ -1331,10 +1902,33 @@ def he3_decay_curves(save_path, HE3_Trans):
     return HE3_Cell_Summary
 
 def he3_pol_at_given_time(entry_time, HE3_Cell_Summary):
-    '''
-    #Predefine HE3_Cell_Summary[HE3_Trans[entry]['Insert_time']] = {'Atomic_P0' : P0, 'Gamma(hours)' : gamma, 'Mu' : Mu, 'Te' : Te}
-    #He3Decay_func must be predefined
-    '''
+    """Compute 3He cell polarization and transmissions at a given time.
+
+    Duplicate of the function with the same name in
+    ``polarization_correction_functions.py``: selects the most recently
+    inserted cell relative to ``entry_time`` and evaluates the atomic
+    polarization, neutron polarization, unpolarized 3He transmission,
+    and majority/minority spin transmissions.
+
+    Parameters
+    ----------
+    entry_time : float
+        Required. Time (hours) at which to evaluate the cell.
+    HE3_Cell_Summary : dict
+        Required. Mapping ``insert_time -> {'Atomic_P0', 'Gamma(hours)',
+        'Mu', 'Te', ...}`` (output of :func:`he3_decay_curves`).
+
+    Returns
+    -------
+    NeutronPol : float
+        ``tanh(Mu * AtomicPol)``.
+    UnpolHE3Trans : float
+        Transmission of unpolarized neutrons through the cell.
+    T_MAJ : float
+        Majority (aligned) spin transmission.
+    T_MIN : float
+        Minority spin transmission.
+    """
     counter = 0
     for time in HE3_Cell_Summary:
         if counter == 0:
@@ -1358,10 +1952,32 @@ def he3_pol_at_given_time(entry_time, HE3_Cell_Summary):
     return NeutronPol, UnpolHE3Trans, T_MAJ, T_MIN
 
 def sans_polarization_supermirror_and_flipper(Pol_Trans, HE3_Cell_Summary, UsePolCorr):
-    #Uses time of measurement from Pol_Trans and cell history from HE3_Cell_Summary.
-    #Saves PSM and PF values into Pol_Trans.
-    #Uses prefdefined he3_pol_at_given_time function.
-    #Note: The vSANS RF Flipper polarization has been measured at 1.0 and is, thus, set.
+    """Derive the supermirror polarization and flipper efficiency per sample.
+
+    For each cross-section measurement time in ``Pol_Trans``, evaluates
+    the cell state via :func:`he3_pol_at_given_time`, then combines the
+    four polarized transmissions to extract ``P_SM`` (sample depolarization
+    times supermirror polarization) and ``P_F`` (flipper polarization,
+    fixed at 1.0 for VSANS). Stores results, neutron-pol and unpol-trans
+    arrays back on ``Pol_Trans``. If ``UsePolCorr`` is false, ``P_SM`` and
+    ``P_F`` are reset to 1.0.
+
+    Parameters
+    ----------
+    Pol_Trans : dict
+        Required. Pol-trans catalog with ``Trans``/``Meas_Time`` lists for
+        each cross-section.
+    HE3_Cell_Summary : dict
+        Required. Cell summary from :func:`he3_decay_curves`.
+    UsePolCorr : bool
+        Required. Override ``P_SM`` and ``P_F`` to 1.0 when false.
+
+    Returns
+    -------
+    Pol_Trans : dict
+        Updated catalog with ``P_SM``, ``P_F``, ``abs_scale``, plus
+        ``Neutron_Pol`` and ``Unpol_Trans`` per cross-section.
+    """
     
     for ID in Pol_Trans:
         if 'Meas_Time' in Pol_Trans[ID]['T_UU']:
@@ -1442,7 +2058,31 @@ def sans_polarization_supermirror_and_flipper(Pol_Trans, HE3_Cell_Summary, UsePo
     return Pol_Trans
 
 def sans_best_supermirror_polarization(Pol_Trans, UsePolCorr = True, Starting_PSM = 0.9985, YesNoBypassBestGuessPSM = False):
-    
+    """Pick the best supermirror polarization estimate to use downstream.
+
+    Starts from ``Starting_PSM`` and, if ``YesNoBypassBestGuessPSM`` is
+    true, also considers every ``P_SM`` recorded on samples in
+    ``Pol_Trans``. The maximum is returned, clamped to 1.0.
+
+    Parameters
+    ----------
+    Pol_Trans : dict
+        Required. Pol-trans catalog (consulted for measured ``P_SM`` when
+        ``YesNoBypassBestGuessPSM`` is true).
+    UsePolCorr : bool, optional
+        Controls whether the chosen value is printed (default ``True``).
+    Starting_PSM : float, optional
+        Prior best-known supermirror polarization (default 0.9985).
+    YesNoBypassBestGuessPSM : bool, optional
+        If true, include every measured ``P_SM`` in the comparison
+        (default ``False``).
+
+    Returns
+    -------
+    Truest_PSM : float
+        Best estimate of the supermirror polarization, clamped to 1.0.
+    """
+
     Measured_PSM = [Starting_PSM]
     if YesNoBypassBestGuessPSM:
         for Sample in Pol_Trans:              
@@ -1460,7 +2100,43 @@ def sans_best_supermirror_polarization(Pol_Trans, UsePolCorr = True, Starting_PS
     return Truest_PSM
 
 def sans_record_data_processing_steps(save_path, Plex_Name, Scatt, BlockBeam, Trans, Pol_Trans, HE3_Cell_Summary, YesNoManualHe3Entry = False, Contents = 'not used'):
-                                
+    """Write a human-readable summary of the data reduction inputs.
+
+    Produces ``DataReductionSummary.txt`` in ``save_path`` recording the
+    plex file used, per-sample/per-config block-beam and transmission
+    files, the four polarized cross-section file lists, full polarization
+    results (``P_SM`` and transmission file lists), and the 3He cell
+    parameters. Twin of ``vsans_record_data_processing`` in
+    ``polarization_correction_functions.py``.
+
+    Parameters
+    ----------
+    save_path : str
+        Required. Output directory.
+    Plex_Name : str
+        Required. Name of the plex file used.
+    Scatt : dict
+        Required. Scattering catalog.
+    BlockBeam : dict
+        Required. Block-beam catalog.
+    Trans : dict
+        Required. Transmission catalog.
+    Pol_Trans : dict
+        Required. Pol-trans catalog.
+    HE3_Cell_Summary : dict
+        Required. 3He cell summary.
+    YesNoManualHe3Entry : bool or int, optional
+        If truthy, additionally write the (module-level) ``New_HE3_Files``,
+        ``MuValues``, ``TeValues`` arrays (default ``False``).
+    Contents : str, optional
+        Verbatim user-input block embedded at the top of the summary
+        (default ``'not used'``).
+
+    Returns
+    -------
+    None
+    """
+
     file_path = os.path.join(save_path, 'DataReductionSummary.txt')
     file1 = open(file_path, "w+")
     file1.write("Record of Data Reduction \n")
@@ -1583,7 +2259,84 @@ def reduction_pipeline(input_path, save_path, Instrument = "VSANS",
                         Starting_PSM = 0.9985,
                         YesNoBypassBestGuessPSM = False
 ):
-        
+        """Run the full pre-polarization-correction SANS reduction pipeline.
+
+        Composes :func:`sans_instrument_selection`,
+        :func:`sans_sort_data_automatic`, the three ``sans_share_*``
+        catalog completers, :func:`vsans_share_pol_trans_catalog`,
+        :func:`sans_process_he3_trans_catalog`,
+        :func:`sans_process_pol_trans_catalog`,
+        :func:`sans_process_trans_catalog`, :func:`plex_file`,
+        :func:`he3_decay_curves`,
+        :func:`sans_polarization_supermirror_and_flipper`,
+        :func:`sans_best_supermirror_polarization`, and
+        :func:`sans_record_data_processing_steps`. Writes
+        ``ReductionResults.json`` to ``save_path`` and returns the same
+        dict.
+
+        Parameters
+        ----------
+        input_path : str
+            Required. Directory containing raw NeXus files.
+        save_path : str
+            Required. Output directory for the summary, plots, and JSON.
+        Instrument : str, optional
+            ``'VSANS'`` or ``'NG7SANS'`` (default ``'VSANS'``).
+        UsePolCorr : bool, optional
+            Apply polarization correction (default ``True``).
+        SampleDescriptionKeywordsToExclude : list[str] or None, optional
+            Keywords stripped from sample descriptions (default ``None``).
+        TransPanel : str or None, optional
+            Panel used to integrate transmissions; derived from
+            ``Instrument`` when ``None`` (default ``None``).
+        YesNoManualHe3Entry : bool, optional
+            Use manually supplied 3He values (default ``False``).
+        New_HE3_Files : list[int] or None, optional
+            Manually flagged 3He cell-load files (default ``None``).
+        MuValues : list[float] or None, optional
+            Manual ``Mu`` values (default ``None``).
+        TeValues : list[float] or None, optional
+            Manual ``Te`` values (default ``None``).
+        Excluded_Filenumbers : list[int] or None, optional
+            Files to skip (default ``None``).
+        Min_Filenumber, Max_Filenumber : int, optional
+            Global file-number bounds (defaults 0 and 1000000).
+        Min_Scatt_Filenumber, Max_Scatt_Filenumber : int, optional
+            Scattering-run bounds (defaults 0 and 1000000).
+        Min_Trans_Filenumber, Max_Trans_Filenumber : int, optional
+            Transmission-run bounds (defaults 0 and 1000000).
+        ReAssignBlockBeamIntent, ReAssignEmptyIntent, ReAssignOpenIntent, ReAssignSampleIntent : list[int] or None, optional
+            Override auto-detected intents (each default ``None``).
+        YesNoRenameEmpties : bool, optional
+            Rename empty-cell samples to ``Sample_Name = 'Empty'``
+            (default ``True``).
+        TempDiffAllowedForSharingTrans : float, optional
+            Maximum temperature difference for transmission sharing
+            (default 20.0 K).
+        HighResMinX, HighResMaxX, HighResMinY, HighResMaxY : int, optional
+            High-resolution back-detector pixel bounds (defaults 240, 474,
+            667, 917).
+        ConvertHighResToSubset : bool, optional
+            Crop the back detector to high-res bounds (default ``True``).
+        HighResGain : float, optional
+            Gain factor for the back detector (default 100.0).
+        Notes : str, optional
+            Verbatim text embedded in the ``DataReductionSummary.txt``
+            (default ``'not used'``).
+        Starting_PSM : float, optional
+            Prior best supermirror polarization (default 0.9985).
+        YesNoBypassBestGuessPSM : bool, optional
+            Include measured ``P_SM`` values when picking ``Truest_PSM``
+            (default ``False``).
+
+        Returns
+        -------
+        Results : dict
+            Reduction outputs including all catalogs, ``Truest_PSM``, the
+            plex arrays, and metadata. Also written as
+            ``ReductionResults.json`` in ``save_path``.
+        """
+
         Detector_Panels, TransPanel, Slices = sans_instrument_selection(Instrument = Instrument)
 
         (Sample_Names, Sample_Bases, Configs, BlockBeamCatalog, ScattCatalog, TransCatalog, Pol_TransCatalog, 
