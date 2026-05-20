@@ -13,10 +13,33 @@ sys.path.insert(0, str(Path.cwd().parent / 'src'))
 from sans_reduction_utilites.reduction_functions import get_by_filenumber, sans_sample_base_name_descrip
 
 def he3_pol_at_given_time(entry_time, HE3_Cell_Summary):
-    '''
-    #Predefine HE3_Cell_Summary[HE3_Trans[entry]['Insert_time']] = {'Atomic_P0' : P0, 'Gamma(hours)' : gamma, 'Mu' : Mu, 'Te' : Te}
-    #He3Decay_func must be predefined
-    '''
+    """Compute the 3He cell polarization and transmissions at a given time.
+
+    Uses the decay parameters of the most recently inserted cell relative to
+    ``entry_time`` to evaluate the atomic polarization, the resulting neutron
+    polarization, the unpolarized 3He transmission, and the spin-state
+    transmissions T_MAJ and T_MIN.
+
+    Parameters
+    ----------
+    entry_time : float
+        Required. Time (hours) at which to evaluate the cell, on the same
+        clock as the keys of ``HE3_Cell_Summary``.
+    HE3_Cell_Summary : dict
+        Required. Mapping ``insert_time -> {'Atomic_P0', 'Gamma(hours)',
+        'Mu', 'Te', ...}`` describing each 3He cell load.
+
+    Returns
+    -------
+    NeutronPol : float
+        Neutron polarization ``tanh(Mu * AtomicPol)``.
+    UnpolHE3Trans : float
+        Transmission of unpolarized neutrons through the cell.
+    T_MAJ : float
+        Transmission of the majority (aligned) spin state.
+    T_MIN : float
+        Transmission of the minority (anti-aligned) spin state.
+    """
     counter = 0
     for time in HE3_Cell_Summary:
         if counter == 0:
@@ -40,7 +63,41 @@ def he3_pol_at_given_time(entry_time, HE3_Cell_Summary):
     return NeutronPol, UnpolHE3Trans, T_MAJ, T_MIN
 
 def vsans_record_data_processing(save_path, Plex_Name = 'not used', Scatt = {}, BlockBeam = {}, Trans = {}, Pol_Trans = {}, HE3_Cell_Summary = {}, YesNoManualHe3Entry = False, Contents = 'not used'):
-                                
+    """Write a human-readable summary of the data reduction inputs.
+
+    Produces ``DataReductionSummary.txt`` inside ``save_path`` recording the
+    sample/config catalog, transmission files, block-beam files, polarized-
+    transmission results, and 3He cell parameters used by the reduction.
+
+    Parameters
+    ----------
+    save_path : str
+        Required. Output directory in which ``DataReductionSummary.txt``
+        will be written.
+    Plex_Name : str, optional
+        Name (or path) of the plex/efficiency file (default ``'not used'``).
+    Scatt : dict, optional
+        Scattering catalog keyed by sample name (default ``{}``).
+    BlockBeam : dict, optional
+        Block-beam catalog keyed by configuration (default ``{}``).
+    Trans : dict, optional
+        Transmission catalog keyed by sample name (default ``{}``).
+    Pol_Trans : dict, optional
+        Polarized-transmission catalog keyed by sample name (default ``{}``).
+    HE3_Cell_Summary : dict, optional
+        3He cell summary keyed by insertion time (default ``{}``).
+    YesNoManualHe3Entry : bool or int, optional
+        If truthy, additionally write the manually supplied ``New_HE3_Files``,
+        ``MuValues``, and ``TeValues`` (default ``False``).
+    Contents : str, optional
+        Verbatim user-input block to embed at the top of the summary
+        (default ``'not used'``).
+
+    Returns
+    -------
+    None
+    """
+
     file_path = os.path.join(save_path, "DataReductionSummary.txt")
     file1 = open(file_path,"w+")
     file1.write("Record of Data Reduction \n")
@@ -133,6 +190,24 @@ def vsans_record_data_processing(save_path, Plex_Name = 'not used', Scatt = {}, 
     return
 
 def he3_evaluation(He3Only_Check, HE3_TransCatalog):
+    """Print a per-cell listing of 3He transmission measurements.
+
+    Useful for the helium team to inspect transmission files without
+    running a full reduction. Does nothing unless ``He3Only_Check`` is true.
+
+    Parameters
+    ----------
+    He3Only_Check : bool
+        Required. If true, print the catalog; otherwise return immediately.
+    HE3_TransCatalog : dict
+        Required. Per-cell mapping with keys ``'Cell_name'``,
+        ``'HE3_OUT_file'``, ``'HE3_IN_file'``, ``'Transmission'``,
+        ``'Elasped_time'``, and ``'Config'``, each holding a list of values.
+
+    Returns
+    -------
+    None
+    """
 
     if He3Only_Check:
         for entry in HE3_TransCatalog:
@@ -146,6 +221,32 @@ def he3_evaluation(He3Only_Check, HE3_TransCatalog):
     return
 
 def solid_angle_all_detectors(Detector_Panels, Instrument, input_path, representative_filenumber, Config):
+    """Compute the per-pixel solid angle for every relevant detector panel.
+
+    Reads the geometry of ``representative_filenumber`` and returns the
+    product of the angular pixel sizes for each panel; the high-resolution
+    back detector ``'B'`` is included when ``Config`` contains ``'CvB'``.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names (e.g. ``['FR','FL','MR','ML',...]``).
+    Instrument : str
+        Required. Instrument identifier; must contain ``'VSANS'`` or
+        ``'NG7SANS'``.
+    input_path : str
+        Required. Directory containing the raw NeXus files.
+    representative_filenumber : int
+        Required. Run number used to read panel geometry.
+    Config : str
+        Required. Configuration label; if it contains ``'CvB'`` the back
+        detector is included.
+
+    Returns
+    -------
+    Solid_Angle : dict[str, float]
+        Per-pixel solid angle (steradians) keyed by detector short name.
+    """
 
     relevant_detectors = list(Detector_Panels)
     if str(Config).find('CvB') != -1:
@@ -177,6 +278,37 @@ def solid_angle_all_detectors(Detector_Panels, Instrument, input_path, represent
     return Solid_Angle
 
 def all_sans_blocked_beam_counts_per_second_list_of_files(Detector_Panels, Instrument, input_path, filelist, Config, examplefilenumber):
+    """Sum a list of block-beam files and return per-pixel counts/second.
+
+    Accumulates counts and live time across ``filelist``, then divides to
+    obtain a counts-per-second map and Poisson uncertainty for each panel.
+    If ``filelist`` is empty or contains no usable files, arrays of zeros
+    matching ``examplefilenumber`` are returned.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names to process.
+    Instrument : str
+        Required. ``'VSANS'`` or ``'NG7SANS'``.
+    input_path : str
+        Required. Directory containing raw NeXus files.
+    filelist : Sequence[int]
+        Required. Block-beam run numbers to sum (may be empty).
+    Config : str
+        Required. Configuration label; ``'CvB'`` triggers inclusion of the
+        back detector.
+    examplefilenumber : int
+        Required. Fallback run number used to size the zero arrays when no
+        block-beam files are usable.
+
+    Returns
+    -------
+    BB_CountsPerSecond : dict[str, np.ndarray]
+        2-D counts-per-second array keyed by panel.
+    BB_Unc : dict[str, np.ndarray]
+        Matching per-pixel uncertainty (sqrt(counts)/seconds).
+    """
 
     BB_Counts = {}
     BB_Unc = {}
@@ -228,7 +360,68 @@ def all_sans_blocked_beam_counts_per_second_list_of_files(Detector_Panels, Instr
     return BB_CountsPerSecond, BB_Unc #returns empty list or 2D, detector-panel arrays
 
 def q_calculation_all_detectors(Detector_Panels, Instrument, SampleApertureInMM, SampleDescriptionKeywordsToExclude, input_path, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, representative_filenumber, Config, MiddlePixelBorderHorizontal, MiddlePixelBorderVertical, SectorCutAngles, Slices, AlignDet_Trans):
-    #Uses sans_sample_base_name_descrip(Detector_Panels, Instrument, input_path, representative_filenumber)
+    """Build per-pixel Q maps and a shadow mask for every relevant panel.
+
+    Computes pixel-level ``Qx``, ``Qy``, ``Qz``, ``|Q|``, parallel and
+    perpendicular Q uncertainties (including gravity correction), the in-plane
+    azimuthal angle map, and a beam-line shadow mask (beam stop and detector
+    overlaps) for the configuration of ``representative_filenumber``.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str
+        Required. ``'VSANS'`` or ``'NG7SANS'``.
+    SampleApertureInMM : bool
+        Required. If true, sample aperture values read from the NeXus file
+        are converted from mm to cm.
+    SampleDescriptionKeywordsToExclude : list[str] or None
+        Required. Substrings used by ``sans_sample_base_name_descrip`` to
+        strip noise from the sample description.
+    input_path : str
+        Required. Directory containing raw NeXus files.
+    Calc_Q_From_Trans : bool
+        Required. If true, override the recorded beam center with one
+        derived from aligned transmission files via
+        :func:`assign_beam_center_for_scatt_file`.
+    HighResMinX, HighResMaxX, HighResMinY, HighResMaxY : int
+        Required. Pixel-index bounds defining the high-resolution back
+        detector subset.
+    ConvertHighResToSubset : bool
+        Required. If true, crop back-detector Q arrays to the
+        ``HighRes*`` bounds.
+    HighResGain : float
+        Required. Gain factor for the high-resolution back detector.
+    representative_filenumber : int
+        Required. Run number whose geometry is read.
+    Config : str
+        Required. Configuration label; ``'CvB'`` adds detector ``'B'``.
+    MiddlePixelBorderHorizontal, MiddlePixelBorderVertical : int
+        Required. Width (in pixels) of the masked border on the middle
+        carriage detectors.
+    SectorCutAngles : float
+        Required. Sector half-width (degrees) — passed through for context.
+    Slices : Iterable[str]
+        Required. Slice keys (``'Circ'``, ``'Horz'``, ``'Vert'``, ``'Diag'``)
+        — passed through for context.
+    AlignDet_Trans : dict
+        Required. Aligned-transmission catalog used by
+        :func:`assign_beam_center_for_scatt_file`.
+
+    Returns
+    -------
+    Qx, Qy, Qz, Q_total : dict[str, np.ndarray]
+        Per-panel components and magnitude of Q in inverse Angstroms.
+    Q_perp_unc, Q_parl_unc : dict[str, np.ndarray]
+        Per-pixel perpendicular and parallel Q uncertainties.
+    InPlaneAngleMap : dict[str, np.ndarray]
+        Per-pixel azimuthal angle in degrees (``[-180, 180]``).
+    dimXX, dimYY : dict[str, int]
+        Per-panel detector dimensions (after any high-res cropping).
+    Shadow_Mask : dict[str, np.ndarray]
+        Per-panel mask (0 inside the shadow, ~1.2 outside).
+    """
 
     relevant_detectors = list(Detector_Panels)
     if str(Config).find('CvB') != -1:
@@ -538,6 +731,39 @@ def q_calculation_all_detectors(Detector_Panels, Instrument, SampleApertureInMM,
     return Qx, Qy, Qz, Q_total, Q_perp_unc, Q_parl_unc, InPlaneAngleMap, dimXX, dimYY, Shadow_Mask
 
 def sector_mask_all_detectors(Detector_Panels, Instrument, SiMirror, Config, InPlaneAngleMap, PrimaryAngle, AngleWidth, BothSides):
+    """Build a per-panel azimuthal sector mask.
+
+    Returns 1.0 where pixels lie within ``AngleWidth`` of ``PrimaryAngle``
+    (and, if ``BothSides``, of ``PrimaryAngle + 180``), 0.0 elsewhere.
+    A Si-mirror specific cutout around +90° is applied when ``SiMirror``
+    contains ``'IN'``.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str
+        Required. Instrument identifier (kept for parity with related
+        functions; not used directly).
+    SiMirror : str
+        Required. Si-mirror state; ``'IN'`` triggers an extra ±60° cutout
+        centered on +90°.
+    Config : str
+        Required. Configuration label; ``'CvB'`` adds detector ``'B'``.
+    InPlaneAngleMap : dict[str, np.ndarray]
+        Required. Per-panel in-plane angle map in degrees.
+    PrimaryAngle : float
+        Required. Center of the sector in degrees.
+    AngleWidth : float
+        Required. Half-width of the sector in degrees.
+    BothSides : int or bool
+        Required. If >= 1, also include the diametrically opposite sector.
+
+    Returns
+    -------
+    SectorMask : dict[str, np.ndarray]
+        Per-panel binary sector mask.
+    """
 
     SectorMask = {}
     relevant_detectors = list(Detector_Panels)
@@ -572,6 +798,42 @@ def sector_mask_all_detectors(Detector_Panels, Instrument, SiMirror, Config, InP
     return SectorMask
 
 def min_max_q(Detector_Panels, Instrument, Absolute_Q_min, Absolute_Q_max, Q_total, Config, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain):
+    """Choose Q binning limits and bin count for the current configuration.
+
+    Selects ``Q_min`` and ``Q_max`` as the tighter of user-supplied absolute
+    limits and the limits actually realized by the detector panels. ``Q_bins``
+    scales with the spanned fraction and is increased when the high-resolution
+    back detector is included via ``Config`` containing ``'CvB'``.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str
+        Required. ``'VSANS'`` or ``'NG7SANS'`` (selects the panel layout
+        used to compute Q extents).
+    Absolute_Q_min, Absolute_Q_max : float
+        Required. User-imposed absolute Q limits in inverse Angstroms.
+    Q_total : dict[str, np.ndarray]
+        Required. Per-panel |Q| maps from :func:`q_calculation_all_detectors`.
+    Config : str
+        Required. Configuration label.
+    HighResMinX, HighResMaxX, HighResMinY, HighResMaxY : int
+        Required. High-resolution back-detector pixel bounds (used only to
+        size the extra bin allocation).
+    ConvertHighResToSubset : bool
+        Required. Currently unused inside the function but kept for API
+        parity with the rest of the pipeline.
+    HighResGain : float
+        Required. Currently unused inside the function but kept for API
+        parity.
+
+    Returns
+    -------
+    Q_min : float
+    Q_max : float
+    Q_bins : int
+    """
 
     if 'NG7SANS' in Instrument:
         ds = Detector_Panels[0]
@@ -613,8 +875,37 @@ def min_max_q(Detector_Panels, Instrument, Absolute_Q_min, Absolute_Q_max, Q_tot
     return Q_min, Q_max, Q_bins
 
 def assign_beam_center_for_scatt_file(Detector_Panels, Instrument, input_path, Sample_Name, Config, AlignTrans):
-    #Uses f = get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
-    #Uses get_beam_center
+    """Look up the FR and MR beam-center coordinates for a sample/config.
+
+    Selects an aligned-transmission file (polarized preferred, unpolarized
+    fallback) for the FR and MR panels and computes the beam center via
+    :func:`get_beam_center`. Returns ``'NA'`` for any axis that cannot be
+    resolved.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str
+        Required. Instrument identifier.
+    input_path : str
+        Required. Directory containing raw NeXus files.
+    Sample_Name : str
+        Required. Sample key used to index ``AlignTrans``.
+    Config : str
+        Required. Configuration key used to index ``AlignTrans[Sample_Name]``.
+    AlignTrans : dict
+        Required. Aligned-transmission catalog with FR/MR Pol/Unpol file
+        lists under each sample/config.
+
+    Returns
+    -------
+    X_FR, Y_FR : float or 'NA'
+        Beam-center coordinates on the FR panel.
+    X_MR, Y_MR : float or 'NA'
+        Beam-center coordinates on the MR panel.
+    """
+
 
     FR_filenumber = 0
     MR_filenumber = 0
@@ -643,6 +934,56 @@ def assign_beam_center_for_scatt_file(Detector_Panels, Instrument, input_path, S
     return X_FR, Y_FR, X_MR, Y_MR
 
 def abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, ScattType, Sample, Config, BlockBeam_per_second, Solid_Angle, Plex, Scatt, Trans):
+    """Absolute-scale and block-beam-subtract the scattering for one cross-section.
+
+    For each run in ``Scatt[Sample]['Config(s)'][Config][ScattType]`` the
+    per-panel data is block-beam corrected, divided by the plex, solid
+    angle, monitor counts, transmission, and (for polarized cross-sections)
+    the 3He glass transmission, then accumulated.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str
+        Required. ``'VSANS'`` or ``'NG7SANS'``.
+    YesNoManualHe3Entry : bool
+        Required. If true, use manually supplied ``TeValues[0]`` instead of
+        the NeXus glass transmission entry.
+    input_path : str
+        Required. Directory containing raw NeXus files.
+    HighResMinX, HighResMaxX, HighResMinY, HighResMaxY : int
+        Required. High-resolution back-detector pixel bounds.
+    ConvertHighResToSubset : bool
+        Required. If true, crop the back detector to the high-res bounds.
+    HighResGain : float
+        Required. Gain factor applied to the back-detector counts.
+    ScattType : {'UU','DU','DD','UD','U','D','Unpol'}
+        Required. Which scattering cross-section to scale.
+    Sample : str
+        Required. Sample name.
+    Config : str
+        Required. Configuration label.
+    BlockBeam_per_second : dict[str, np.ndarray]
+        Required. Block-beam counts/second per panel.
+    Solid_Angle : dict[str, float]
+        Required. Per-panel pixel solid angles.
+    Plex : dict[str, np.ndarray]
+        Required. Per-panel plex / detector efficiency arrays.
+    Scatt : dict
+        Required. Scattering catalog.
+    Trans : dict
+        Required. Transmission catalog supplying ``U_Trans_Cts`` or
+        ``Unpol_Trans_Cts``.
+
+    Returns
+    -------
+    Scaled_Data : dict[str, np.ndarray] or 'NA'
+        Absolute-scaled intensity per panel; ``'NA'`` if the inputs flag
+        missing data.
+    UncScaled_Data : dict[str, np.ndarray] or 'NA'
+        Matching per-panel uncertainty.
+    """
 
     Scaled_Data = {}
     UncScaled_Data = {}
@@ -738,6 +1079,90 @@ def abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, High
     return Scaled_Data, UncScaled_Data
 
 def vsans_make_slices_and_save_ascii(YesNoShowPlots, Detector_Panels, Instrument, SampleApertureInMM, SampleDescriptionKeywordsToExclude, UsePolCorr, YesNoManualHe3Entry, input_path, save_path, He3CorrectionType, YesNo_2DFilesPerDetector, YesNo_2DCombinedFiles, Absolute_Q_min, Absolute_Q_max, AverageQRanges, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, HE3_Cell_Summary, Plex, Truest_PSM, Minimum_PSM, AlignDet_Trans, He3Only_Check, ScattCatalog, BlockBeamCatalog, Configs, Sample_Names, TransCatalog, Pol_TransCatalog, MiddlePixelBorderHorizontal, MiddlePixelBorderVertical, SectorCutAngles, Slices,  YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax):
+    """Drive the per-sample, per-configuration scaling, pol-correction, and slicing.
+
+    For every configuration in ``Configs`` and every sample in ``Sample_Names``
+    this scales the four polarized cross-sections, half-pol pair, and unpol
+    runs (via :func:`abs_scale`); applies the full polarization correction
+    (via :func:`all_sans_pol_corr_scatt_files`); optionally writes 2-D
+    ASCII files (per-panel and/or combined); and produces 1-D slices (circ /
+    horz / vert / diag) for full-pol, half-pol, and unpol samples.
+
+    Parameters
+    ----------
+    YesNoShowPlots : bool
+        Required. If true, generated matplotlib figures are also displayed.
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str
+        Required. ``'VSANS'`` or ``'NG7SANS'``.
+    SampleApertureInMM : bool
+        Required. See :func:`q_calculation_all_detectors`.
+    SampleDescriptionKeywordsToExclude : list[str] or None
+        Required. Keywords stripped from sample descriptions; ``None`` is
+        treated as an empty list.
+    UsePolCorr : bool or int
+        Required. If truthy, apply the full polarization-correction matrix
+        inversion; otherwise apply only the He3-efficiency correction.
+    YesNoManualHe3Entry : bool
+        Required. Use manually supplied 3He values rather than NeXus entries.
+    input_path, save_path : str
+        Required. Input file directory and output directory.
+    He3CorrectionType : {0, 1, 2}
+        Required. Selects the polarization-efficiency matrix form (see
+        :func:`all_sans_pol_corr_scatt_files`).
+    YesNo_2DFilesPerDetector, YesNo_2DCombinedFiles : bool
+        Required. Toggles for writing per-panel and combined 2-D ASCII files.
+    Absolute_Q_min, Absolute_Q_max : float
+        Required. User-imposed absolute Q limits.
+    AverageQRanges : bool
+        Required. If true, overlapping carriage Q bins are averaged rather
+        than trimmed.
+    Calc_Q_From_Trans : bool
+        Required. If true, refine the beam center from transmission files.
+    HighResMinX, HighResMaxX, HighResMinY, HighResMaxY : int
+        Required. High-resolution back-detector bounds.
+    ConvertHighResToSubset : bool
+        Required. Crop back detector to high-res bounds when true.
+    HighResGain : float
+        Required. Gain factor for the back detector.
+    HE3_Cell_Summary : dict
+        Required. 3He cell parameter summary.
+    Plex : dict[str, np.ndarray]
+        Required. Per-panel plex arrays.
+    Truest_PSM, Minimum_PSM : float
+        Required. Best-known and floor values for the supermirror polarization.
+    AlignDet_Trans : dict
+        Required. Aligned-transmission catalog.
+    He3Only_Check : bool
+        Required. If true, skip the full reduction.
+    ScattCatalog, BlockBeamCatalog, TransCatalog, Pol_TransCatalog : dict
+        Required. The four catalogs driving the reduction.
+    Configs : dict[str, int]
+        Required. Mapping of configuration label to representative file
+        number; a value of 0 skips that config.
+    Sample_Names : Iterable[str]
+        Required. Sample keys to process.
+    MiddlePixelBorderHorizontal, MiddlePixelBorderVertical : int
+        Required. Border widths masked on middle-carriage detectors.
+    SectorCutAngles : float
+        Required. Sector half-width (degrees) for Horz/Vert/Diag slices.
+    Slices : Iterable[str]
+        Required. Slice keys to compute (``'Circ'``/``'Horz'``/``'Vert'``/``'Diag'``).
+    YesNoSetPlotXRange, YesNoSetPlotYRange : bool
+        Required. Toggle manual plot axis limits.
+    PlotXmin, PlotXmax, PlotYmin, PlotYmax : float
+        Required. Manual plot axis limits (used only when toggled on).
+
+    Returns
+    -------
+    AllFullPolSlices : dict
+        ``{Config: {Sample: {slice_key: {...}}}}`` of full-pol slices.
+    AllHalfPolSlices : dict
+        Same shape, for half-pol slices.
+    AllUnpolSlices : dict
+        Same shape, for unpolarized slices.
+    """
 
     if SampleDescriptionKeywordsToExclude == None:
         SampleDescriptionKeywordsToExclude = []
@@ -854,6 +1279,61 @@ def vsans_make_slices_and_save_ascii(YesNoShowPlots, Detector_Panels, Instrument
 
 
 def vsans_full_pol_slices(YesNoShowPlots, save_path, Detector_Panels, Instrument, SiMirror, Slices, SectorCutAngles, AverageQRanges, PolCorrDegree, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, PolCorrUU, PolCorrUU_Unc, PolCorrDU, PolCorrDU_Unc, PolCorrDD, PolCorrDD_Unc, PolCorrUD, PolCorrUD_Unc, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax):
+    """Compute 1-D slices of the four polarized cross-sections for one sample.
+
+    Builds Circ/Horz/Vert/Diag sector masks, calls
+    :func:`two_dim_to_one_dim` on each polarized cross-section, then writes
+    a combined ``SliceFullPol_*.txt`` file and a four-cross-section PNG per
+    slice. The ``PolCorrDegree`` flag controls the file-name tag
+    (``PolCorr`` / ``He3Corr`` / ``NotCorr``).
+
+    Parameters
+    ----------
+    YesNoShowPlots : bool
+        Required. Display generated plots in addition to saving them.
+    save_path : str
+        Required. Output directory.
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str
+        Required. Instrument identifier.
+    SiMirror : str
+        Required. Si-mirror state — passed to the sector-mask builder.
+    Slices : Iterable[str]
+        Required. Subset of ``{'Circ','Horz','Vert','Diag'}`` to compute.
+    SectorCutAngles : float
+        Required. Sector half-width (degrees).
+    AverageQRanges : bool
+        Required. If true, average overlapping carriage bins; auto-disabled
+        when ``Config`` contains ``'CvB'``.
+    PolCorrDegree : int
+        Required. Correction tier: ``>=2`` PolCorr, ``1`` He3Corr, else uncorrected.
+    Sample, Config : str
+        Required. Sample and configuration labels (used for file naming).
+    InPlaneAngleMap : dict[str, np.ndarray]
+        Required. Per-panel azimuthal angle map.
+    Q_min, Q_max : float
+    Q_bins : int
+        Required. Q binning grid.
+    QValues_All : dict
+        Required. Per-panel Q grids from :func:`q_calculation_all_detectors`.
+    Shadow_Mask : dict[str, np.ndarray]
+        Required. Per-panel shadow masks.
+    PolCorrUU, PolCorrUU_Unc, PolCorrDU, PolCorrDU_Unc, PolCorrDD, PolCorrDD_Unc, PolCorrUD, PolCorrUD_Unc : dict[str, np.ndarray]
+        Required. Polarization-corrected intensities and uncertainties for
+        the four cross-sections.
+    YesNoSetPlotXRange, YesNoSetPlotYRange : bool
+        Required. Toggle manual plot axis limits.
+    PlotXmin, PlotXmax, PlotYmin, PlotYmax : float
+        Required. Manual axis limits (used when toggled on).
+
+    Returns
+    -------
+    ReturnSlices : dict
+        Mapping ``slice_key -> {'PolType': str, 'UU','DU','DD','UD': dict}``
+        where each cross-section dict is the output of
+        :func:`two_dim_to_one_dim`.
+    """
 
     relevant_detectors = list(Detector_Panels)
     if str(Config).find('CvB') != -1:
@@ -912,6 +1392,45 @@ def vsans_full_pol_slices(YesNoShowPlots, save_path, Detector_Panels, Instrument
     return ReturnSlices
 
 def vsans_half_pol_slices(Detector_Panels, Instrument, SiMirror, Slices, SectorCutAngles, AverageQRanges, PolType, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, U, U_Unc, D, D_Unc):
+    """Compute 1-D slices for half-polarized (U and D) scattering.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str
+        Required. Instrument identifier.
+    SiMirror : str
+        Required. Si-mirror state.
+    Slices : Iterable[str]
+        Required. Subset of ``{'Circ','Horz','Vert','Diag'}``.
+    SectorCutAngles : float
+        Required. Sector half-width (degrees).
+    AverageQRanges : bool
+        Required. Average overlapping carriage bins; auto-disabled when
+        ``Config`` contains ``'CvB'``.
+    PolType : str
+        Required. Tag stored on each returned slice (e.g. ``'HalfPol'``).
+    Sample, Config : str
+        Required. Labels used for file naming.
+    InPlaneAngleMap : dict[str, np.ndarray]
+        Required. Per-panel azimuthal angle map.
+    Q_min, Q_max : float
+    Q_bins : int
+        Required. Q binning grid.
+    QValues_All : dict
+        Required. Per-panel Q grids.
+    Shadow_Mask : dict[str, np.ndarray]
+        Required. Per-panel shadow masks.
+    U, U_Unc, D, D_Unc : dict[str, np.ndarray]
+        Required. Absolute-scaled U and D intensities with uncertainties.
+
+    Returns
+    -------
+    ReturnSlices : dict
+        ``slice_key -> {'PolType', 'U', 'D'}`` with each cut a dict from
+        :func:`two_dim_to_one_dim`.
+    """
 
     relevant_detectors = list(Detector_Panels)
     if str(Config).find('CvB') != -1:
@@ -953,6 +1472,44 @@ def vsans_half_pol_slices(Detector_Panels, Instrument, SiMirror, Slices, SectorC
     return ReturnSlices
 
 def vsans_unpol_slices(Detector_Panels, Instrument, SiMirror, Slices, SectorCutAngles, AverageQRanges, PolType, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, Unpol, Unpol_Unc):
+    """Compute 1-D slices for unpolarized scattering.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str
+        Required. Instrument identifier.
+    SiMirror : str
+        Required. Si-mirror state.
+    Slices : Iterable[str]
+        Required. Subset of ``{'Circ','Horz','Vert','Diag'}``.
+    SectorCutAngles : float
+        Required. Sector half-width (degrees).
+    AverageQRanges : bool
+        Required. Average overlapping carriage bins; auto-disabled when
+        ``Config`` contains ``'CvB'``.
+    PolType : str
+        Required. Tag stored on each returned slice (e.g. ``'Unpol'``).
+    Sample, Config : str
+        Required. Labels.
+    InPlaneAngleMap : dict[str, np.ndarray]
+        Required. Per-panel azimuthal angle map.
+    Q_min, Q_max : float
+    Q_bins : int
+        Required. Q binning grid.
+    QValues_All : dict
+        Required. Per-panel Q grids.
+    Shadow_Mask : dict[str, np.ndarray]
+        Required. Per-panel shadow masks.
+    Unpol, Unpol_Unc : dict[str, np.ndarray]
+        Required. Absolute-scaled unpol intensity and uncertainty.
+
+    Returns
+    -------
+    ReturnSlices : dict
+        ``slice_key -> {'PolType', 'Unpol'}``.
+    """
 
     relevant_detectors = list(Detector_Panels)
     if str(Config).find('CvB') != -1:
@@ -993,7 +1550,53 @@ def vsans_unpol_slices(Detector_Panels, Instrument, SiMirror, Slices, SectorCutA
     return ReturnSlices
 
 def vsans_save_slices_and_results(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, He3Only_Check, Configs, Sample_Names, ScattCatalog, AllFullPolSlices, AllHalfPolSlices, AllUnpolSlices):
-    #Uses vsans_process_full_pol_slices.
+    """Per sample/config, finalize slices, do MT subtraction, save plots and data.
+
+    Iterates over configurations and samples and calls the three processors
+    :func:`vsans_process_full_pol_slices`, :func:`vsans_process_half_pol_slices`,
+    and :func:`vsans_process_unpol_slices`. Empty samples are also processed
+    when ``AutoSubtractEmpty`` is false.
+
+    Parameters
+    ----------
+    StructurallyIsotropic : bool
+        Required. Use the horizontal sum as the denominator in the magnetic
+        decomposition when true; otherwise use the vertical sum.
+    Slices : Iterable[str]
+        Required. Slice keys.
+    SectorCutAngles : float
+        Required. Sector half-width (degrees).
+    save_path : str
+        Required. Output directory.
+    YesNoShowPlots : bool
+        Required. Display plots in addition to saving them.
+    YesNoSetPlotXRange, YesNoSetPlotYRange : bool
+        Required. Toggle manual plot axis limits.
+    PlotXmin, PlotXmax, PlotYmin, PlotYmax : float
+        Required. Manual axis limits.
+    AutoSubtractEmpty : bool
+        Required. Subtract the empty-cell scattering inside the processors.
+    UseMTCirc : bool
+        Required. Use the empty-cell circular slice for MT subtraction in
+        Horz/Vert/Diag cuts.
+    He3Only_Check : bool
+        Required. If true, skip processing.
+    Configs : dict[str, int]
+        Required. Configuration -> representative file number map.
+    Sample_Names : Iterable[str]
+        Required.
+    ScattCatalog : dict
+        Required. Scattering catalog.
+    AllFullPolSlices, AllHalfPolSlices, AllUnpolSlices : dict
+        Required. Slice data from :func:`vsans_make_slices_and_save_ascii`.
+
+    Returns
+    -------
+    AllFullPolResults : dict
+    AllHalfPolResults : dict
+    AllUnpolResults : dict
+        Each keyed by ``Config -> Sample -> results dict``.
+    """
     AllFullPolResults = {}
     AllHalfPolResults = {}
     AllUnpolResults = {}
@@ -1031,7 +1634,26 @@ def vsans_save_slices_and_results(StructurallyIsotropic, Slices, SectorCutAngles
     return AllFullPolResults, AllHalfPolResults, AllUnpolResults
 
 def match_q_pa_data_sets(A, B, Type):
-    '''if Type = 0 Unpol, if Type = 1 Half Pol, if Type = 2 FullPol'''
+    """Trim two slice dicts so they share a common Q grid.
+
+    Removes Q points present in one set but not the other, in place on the
+    intensity / uncertainty / Q-metadata arrays appropriate to ``Type``.
+
+    Parameters
+    ----------
+    A, B : dict
+        Required. Slice dicts (must contain ``'Q'``, ``'Q_Mean'``, ``'Q_Unc'``,
+        ``'Shadow'`` plus the intensity columns selected by ``Type``).
+    Type : {0, 1, 2}
+        Required. 0 = Unpol, 1 = Half Pol (U/D), 2 = Full Pol (UU/DU/DD/UD).
+
+    Returns
+    -------
+    Horz_Data : dict
+        ``A`` reduced to the shared Q grid.
+    Vert_Data : dict
+        ``B`` reduced to the shared Q grid.
+    """
 
     Horz_Data = A
     Vert_Data = B
@@ -1088,7 +1710,25 @@ def match_q_pa_data_sets(A, B, Type):
     return Horz_Data, Vert_Data
 
 def subtract_pa_data_sets(A, B, Type):
-    '''if Type = 0 Unpol, if Type = 1 Half Pol, if Type = 2 FullPol'''
+    """Subtract slice dict ``B`` from ``A`` and combine uncertainties in quadrature.
+
+    Assumes ``A`` and ``B`` already share a common Q grid (typically after
+    :func:`match_q_pa_data_sets`).
+
+    Parameters
+    ----------
+    A, B : dict
+        Required. Matched slice dicts.
+    Type : {0, 1, 2}
+        Required. 0 = Unpol, 1 = Half Pol, 2 = Full Pol — selects which
+        intensity channels to subtract.
+
+    Returns
+    -------
+    C : dict
+        ``A - B`` for the relevant intensity columns; Q metadata copied
+        from ``A``.
+    """
 
     C = {}
     C['Q'] = A['Q']
@@ -1116,7 +1756,51 @@ def subtract_pa_data_sets(A, B, Type):
     return C
 
 def two_dim_to_one_dim(Detector_Panels, Instrument, Key, Q_min, Q_max, Q_bins, QGridPerDetector, generalmask, sectormask, PolCorr_AllDetectors, Unc_PolCorr_AllDetectors, ID, Config, PlotYesNo, AverageQRanges):
+    """Radially bin masked 2-D intensity into a 1-D Q profile.
 
+    For each panel the intensity inside ``generalmask * sectormask`` is
+    histogrammed on a uniform ``[Q_min, Q_max]`` grid with ``Q_bins`` bins.
+    Front/middle/back carriages are accumulated separately, then either
+    trimmed of overlap (``AverageQRanges=False``) or averaged
+    (``AverageQRanges=True``).
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str
+        Required. Instrument identifier (currently informational).
+    Key : str
+        Required. Slice tag (e.g. ``'CircAve'``) used in titles and file
+        names when plotting.
+    Q_min, Q_max : float
+    Q_bins : int
+        Required. Q-binning grid.
+    QGridPerDetector : dict
+        Required. Per-panel ``Q_total`` / ``Q_parl_unc`` maps (output of
+        :func:`q_calculation_all_detectors`).
+    generalmask : dict[str, np.ndarray]
+        Required. Per-panel general mask (typically the shadow mask).
+    sectormask : dict[str, np.ndarray]
+        Required. Per-panel sector mask from
+        :func:`sector_mask_all_detectors`.
+    PolCorr_AllDetectors : dict[str, np.ndarray]
+        Required. Per-panel intensities to bin.
+    Unc_PolCorr_AllDetectors : dict[str, np.ndarray]
+        Required. Matching per-pixel uncertainties.
+    ID, Config : str
+        Required. Used in plot titles and file names.
+    PlotYesNo : bool or int
+        Required. Render and save a per-call diagnostic plot when nonzero.
+    AverageQRanges : bool
+        Required. Average overlapping carriage bins when true.
+
+    Returns
+    -------
+    Output : dict
+        Keys ``'Q'``, ``'Shadow'``, ``'I'``, ``'I_Unc'``, ``'Q_Mean'``,
+        ``'MeanQ_Unc'``, ``'Pixels'``, ``'Q_Uncertainty'``.
+    """
 
     Q_step = (Q_max - Q_min) / Q_bins
     Q_Values = np.linspace(Q_min, Q_max, Q_bins, endpoint=True) + Q_step/2
@@ -1281,6 +1965,43 @@ def two_dim_to_one_dim(Detector_Panels, Instrument, Key, Q_min, Q_max, Q_bins, Q
     return Output
 
 def ascii_like_output(Detector_Panels, Instrument, save_path, YesNo_2DFilesPerDetector, Type, ID, Config, Data_AllDetectors, Unc_Data_AllDetectors, QGridPerDetector, GeneralMask):
+    """Write 2-D pixel-level (Qx, Qy, I, ...) ASCII files in SasView format.
+
+    For each panel, flattens the masked (Qx, Qy, Qz, I, dI, dQparl, dQperp,
+    shadow) arrays. Optionally writes one file per panel (when
+    ``YesNo_2DFilesPerDetector`` is true) and always writes a combined
+    file that concatenates all panels.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str
+        Required. Instrument identifier (kept for API parity).
+    save_path : str
+        Required. Output directory.
+    YesNo_2DFilesPerDetector : bool
+        Required. If true, also emit one ``.DAT`` per panel.
+    Type : str
+        Required. File-name tag (e.g. ``'PolCorrUU'``, ``'NotCorrDD'``).
+    ID : str
+        Required. Sample identifier in the file name.
+    Config : str
+        Required. Configuration label.
+    Data_AllDetectors : dict[str, np.ndarray] or 'NA'
+        Required. Per-panel intensities; nothing is written if either
+        input contains ``'NA'``.
+    Unc_Data_AllDetectors : dict[str, np.ndarray] or 'NA'
+        Required. Matching per-panel uncertainties.
+    QGridPerDetector : dict
+        Required. Per-panel ``QX/QY/QZ/Q_perp_unc/Q_parl_unc/Q_total`` arrays.
+    GeneralMask : dict[str, np.ndarray]
+        Required. Per-panel mask selecting pixels to export.
+
+    Returns
+    -------
+    None
+    """
 
     relevant_detectors = list(Detector_Panels)
     if str(Config).find('CvB') != -1:
@@ -1373,6 +2094,26 @@ def ascii_like_output(Detector_Panels, Instrument, save_path, YesNo_2DFilesPerDe
     return
 
 def save_text_data(save_path, Type, Slice, Sample, Config, DataMatrix):
+    """Write a single-cross-section 1-D slice to ``Slice{Type}_*.txt``.
+
+    Parameters
+    ----------
+    save_path : str
+        Required. Output directory.
+    Type : str
+        Required. File-name tag (e.g. ``'Unpol'``, ``'PolCorrUU'``).
+    Slice : str
+        Required. Slice label (``'CircAve'``, ``'Horz15'``, ...).
+    Sample, Config : str
+        Required. Labels used in the file name.
+    DataMatrix : dict
+        Required. Output of :func:`two_dim_to_one_dim` with keys ``'Q'``,
+        ``'I'``, ``'I_Unc'``, ``'Q_Mean'``, ``'Q_Uncertainty'``.
+
+    Returns
+    -------
+    None
+    """
 
     Q = DataMatrix['Q']
     Int = DataMatrix['I']
@@ -1390,6 +2131,27 @@ def save_text_data(save_path, Type, Slice, Sample, Config, DataMatrix):
     return
 
 def save_text_data_unpol(save_path, Sub, Slice, Sample, Config, DataMatrix):
+    """Write an unpolarized 1-D slice to ``SliceUnpol_*.txt``.
+
+    Parameters
+    ----------
+    save_path : str
+        Required. Output directory.
+    Sub : str
+        Required. Empty-subtraction tag appended to the file name (e.g.
+        ``''`` or ``',SubMT'``).
+    Slice : str
+        Required. Slice label.
+    Sample, Config : str
+        Required. Labels used in the file name.
+    DataMatrix : dict
+        Required. Unpol slice dict with keys ``'Q'``, ``'Unpol'``,
+        ``'Unpol_Unc'``, ``'Q_Mean'``, ``'Q_Unc'``, ``'Shadow'``.
+
+    Returns
+    -------
+    None
+    """
 
     Q = DataMatrix['Q']
     Int = DataMatrix['Unpol']
@@ -1408,6 +2170,27 @@ def save_text_data_unpol(save_path, Sub, Slice, Sample, Config, DataMatrix):
 
 
 def save_text_data_four_cross_sections(save_path, Type, Slice, Sample, Config, UUMatrix, DUMatrix, DDMatrix, UDMatrix):
+    """Write the four full-pol cross-sections to a single ``SliceFullPol_*.txt``.
+
+    Parameters
+    ----------
+    save_path : str
+        Required. Output directory.
+    Type : str
+        Required. File-name tag (e.g. ``'PolCorr'``, ``'He3Corr'``,
+        ``'NotCorr'``).
+    Slice : str
+        Required. Slice label.
+    Sample, Config : str
+        Required. Labels used in the file name.
+    UUMatrix, DUMatrix, DDMatrix, UDMatrix : dict
+        Required. Per-cross-section output of :func:`two_dim_to_one_dim`.
+        ``UUMatrix`` supplies the shared Q grid and Q metadata.
+
+    Returns
+    -------
+    None
+    """
 
     Q = UUMatrix['Q']
     UU = UUMatrix['I']
@@ -1431,6 +2214,32 @@ def save_text_data_four_cross_sections(save_path, Type, Slice, Sample, Config, U
     return
 
 def save_text_data_four_combined_cross_sections(save_path,  Type, Slice, Sub, Sample, Config, Matrix):
+    """Write four already-combined cross-sections to ``SliceFullPol_*.txt``.
+
+    Unlike :func:`save_text_data_four_cross_sections` this expects a single
+    matched dict (e.g. after MT subtraction) holding all four cross-sections.
+
+    Parameters
+    ----------
+    save_path : str
+        Required. Output directory.
+    Type : str
+        Required. File-name tag.
+    Slice : str
+        Required. Slice label.
+    Sub : str
+        Required. Empty-subtraction tag (``''`` or ``',SubMT'``).
+    Sample, Config : str
+        Required. Labels.
+    Matrix : dict
+        Required. Must contain ``'Q'``, ``'UU'``, ``'UU_Unc'``, ``'DU'``,
+        ``'DU_Unc'``, ``'DD'``, ``'DD_Unc'``, ``'UD'``, ``'UD_Unc'``,
+        ``'Q_Mean'``, ``'Q_Unc'``, ``'Shadow'``.
+
+    Returns
+    -------
+    None
+    """
 
     Q = Matrix['Q']
     UU = Matrix['UU']
@@ -1454,6 +2263,32 @@ def save_text_data_four_combined_cross_sections(save_path,  Type, Slice, Sub, Sa
     return
 
 def plot_four_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, Type, Slice, Sample, Config, UU, DU, DD, UD):
+    """Save a log-log plot of the four full-pol cross-sections.
+
+    Parameters
+    ----------
+    save_path : str
+        Required. Output directory.
+    YesNoShowPlots : bool
+        Required. Display the plot in addition to saving it.
+    YesNoSetPlotXRange, YesNoSetPlotYRange : bool
+        Required. Toggle manual axis limits.
+    PlotXmin, PlotXmax, PlotYmin, PlotYmax : float
+        Required. Manual axis limits (used only when toggled on).
+    Type : str
+        Required. File-name tag for the saved PNG.
+    Slice : str
+        Required. Slice label.
+    Sample, Config : str
+        Required. Labels.
+    UU, DU, DD, UD : dict
+        Required. Per-cross-section slice dicts with ``'Q'``, ``'I'``,
+        ``'I_Unc'`` keys.
+
+    Returns
+    -------
+    None
+    """
 
     fig = plt.figure()
     ax = plt.axes()
@@ -1481,6 +2316,39 @@ def plot_four_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesN
     return
 
 def plot_four_combined_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, Type, Slice, Sub, Sample, Config, Matrix):
+    """Save a log-log plot of four cross-sections stored in a single matched dict.
+
+    Counterpart of :func:`plot_four_cross_sections` for a dict already
+    holding ``UU``/``DU``/``DD``/``UD`` columns (typically after MT
+    subtraction).
+
+    Parameters
+    ----------
+    save_path : str
+        Required. Output directory.
+    YesNoShowPlots : bool
+        Required. Display the plot in addition to saving it.
+    YesNoSetPlotXRange, YesNoSetPlotYRange : bool
+        Required. Toggle manual axis limits.
+    PlotXmin, PlotXmax, PlotYmin, PlotYmax : float
+        Required. Manual axis limits.
+    Type : str
+        Required. File-name tag.
+    Slice : str
+        Required. Slice label.
+    Sub : str
+        Required. Empty-subtraction tag (``''`` or ``',SubMT'``).
+    Sample, Config : str
+        Required. Labels.
+    Matrix : dict
+        Required. Combined cross-section dict with ``'Q'``, ``'UU'``,
+        ``'UU_Unc'``, ``'DU'``, ``'DU_Unc'``, ``'DD'``, ``'DD_Unc'``,
+        ``'UD'``, ``'UD_Unc'``.
+
+    Returns
+    -------
+    None
+    """
 
     fig = plt.figure()
     ax = plt.axes()
@@ -1508,7 +2376,38 @@ def plot_four_combined_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRa
     return
 
 def get_beam_center(Detector_Panels, Instrument, input_path, filenumber, dshort, trans_max_width_pixels):
-    #Uses f = get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
+    """Find the beam-center coordinates from a transmission run.
+
+    For NG7SANS, returns the centers stored in the NeXus file directly.
+    For VSANS, computes the center of mass of the requested panel, refines
+    it on a small subregion (clamped to ``trans_max_width_pixels`` away
+    from each edge), and converts pixel coordinates to centimeters using
+    the panel's spatial calibration.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str
+        Required. ``'VSANS'`` or ``'NG7SANS'``.
+    input_path : str
+        Required. Directory containing raw NeXus files.
+    filenumber : int
+        Required. Transmission run number to read.
+    dshort : str
+        Required. Short panel name on which to find the center (VSANS).
+    trans_max_width_pixels : int
+        Required. Maximum half-width (pixels) of the subregion used for
+        the center-of-mass refinement.
+
+    Returns
+    -------
+    middle_bc_x : float
+        Beam-center X in cm (VSANS) or pixels (NG7SANS).
+    middle_bc_y : float
+        Beam-center Y in cm (VSANS) or pixels (NG7SANS).
+    """
+
 
     f = get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
     middle_bc_x = 0
@@ -1569,6 +2468,65 @@ def get_beam_center(Detector_Panels, Instrument, input_path, filenumber, dshort,
     return middle_bc_x, middle_bc_y
 
 def all_sans_pol_corr_scatt_files(Detector_Panels, Instrument, UsePolCorr, input_path, He3CorrectionType, BestPSM, Minimum_PSM, dimXX, dimYY, Sample, Config, Scatt, Trans, Pol_Trans, UUScaledData, DUScaledData, DDScaledData, UDScaledData, UUScaledData_Unc, DUScaledData_Unc, DDScaledData_Unc, UDScaledData_Unc, HE3_Cell_Summary):
+    """Apply the full-polarization correction (or He3-only correction) per panel.
+
+    Builds the time-averaged 4x4 polarization-efficiency matrix from each
+    cross-section's flipper times and 3He decay, inverts it, and applies
+    it to the four scaled cross-sections. Three matrix variants are
+    available via ``He3CorrectionType``. If ``UsePolCorr`` is false, only
+    the diagonal He3-efficiency correction is applied. The high-resolution
+    back detector is handled separately when ``Config`` contains ``'CvB'``.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str
+        Required. ``'VSANS'`` or ``'NG7SANS'`` (selects flat-array sizing).
+    UsePolCorr : bool or int
+        Required. If truthy, apply the full inversion; otherwise apply
+        only the He3-efficiency diagonal correction.
+    input_path : str
+        Required. Directory containing raw NeXus files.
+    He3CorrectionType : {0, 1, 2}
+        Required. Selects the polarization-efficiency model:
+        0 ``X`` depol before sample, ``Y`` depol after = 1;
+        1 default (``X = Y``);
+        2 ``Y`` after, ``X`` before = 1.
+    BestPSM : float
+        Required. Best-known supermirror polarization.
+    Minimum_PSM : float
+        Required. Floor on the measured supermirror polarization.
+    dimXX, dimYY : dict[str, int]
+        Required. Per-panel detector dimensions (output of
+        :func:`q_calculation_all_detectors`).
+    Sample, Config : str
+        Required. Sample and configuration labels.
+    Scatt : dict
+        Required. Scattering catalog (used to read file lists and times).
+    Trans : dict
+        Required. Transmission catalog (used to check presence).
+    Pol_Trans : dict
+        Required. Polarized-transmission catalog supplying ``P_SM`` / ``P_F``.
+    UUScaledData, DUScaledData, DDScaledData, UDScaledData : dict[str, np.ndarray]
+        Required. Absolute-scaled per-cross-section intensities.
+    UUScaledData_Unc, DUScaledData_Unc, DDScaledData_Unc, UDScaledData_Unc : dict[str, np.ndarray]
+        Required. Matching uncertainties.
+    HE3_Cell_Summary : dict
+        Required. 3He cell parameter summary.
+
+    Returns
+    -------
+    Have_FullPol : int
+        0 = no correction applied, 1 = He3-only correction, 2 = full
+        polarization correction.
+    PolCorr_ALLCS : dict[str, np.ndarray]
+        Per-panel sum of UU + DD.
+    PolCorr_UU, PolCorr_DU, PolCorr_DD, PolCorr_UD : dict[str, np.ndarray]
+        Per-panel corrected cross-sections.
+    PolCorr_ALLCS_Unc, PolCorr_UU_Unc, PolCorr_DU_Unc, PolCorr_DD_Unc, PolCorr_UD_Unc : dict[str, np.ndarray]
+        Per-panel uncertainties.
+    """
 
     if 'VSANS' in Instrument:
         Scaled_Data = np.zeros((8,4,6144))
@@ -1769,7 +2727,52 @@ def all_sans_pol_corr_scatt_files(Detector_Panels, Instrument, UsePolCorr, input
     return Have_FullPol, PolCorr_ALLCS, PolCorr_UU, PolCorr_DU, PolCorr_DD, PolCorr_UD, PolCorr_ALLCS_Unc, PolCorr_UU_Unc, PolCorr_DU_Unc, PolCorr_DD_Unc, PolCorr_UD_Unc
 
 def vsans_process_full_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, PolSampleSlices, Sample):
-    '''Note uses AutoSubtractEmpty  and UseMTCirc from UserInput.py'''
+    """Combine four full-pol cross-section slices into structural/magnetic results.
+
+    For each sector slice the four cross-sections are optionally MT-subtracted,
+    saved as text and PNG, and the Horz/Vert pair is used to derive
+    ``M_Perp``, ``M_Parl_NSF``, and the non-spin-flip structural sum, which
+    are then plotted and written as ``ResultsFullPol_*`` / ``PlotFullPol*``.
+
+    Parameters
+    ----------
+    StructurallyIsotropic : bool
+        Required. Use the horizontal NSF sum as the denominator in the
+        ``M_Parl_NSF`` decomposition when true; otherwise the vertical.
+    Slices : Iterable[str]
+        Required. Slice keys.
+    SectorCutAngles : float
+        Required. Sector half-width (degrees).
+    save_path : str
+        Required. Output directory.
+    YesNoShowPlots : bool
+        Required. Display plots in addition to saving.
+    YesNoSetPlotXRange, YesNoSetPlotYRange : bool
+        Required. Toggle manual plot axis limits.
+    PlotXmin, PlotXmax, PlotYmin, PlotYmax : float
+        Required. Manual axis limits.
+    AutoSubtractEmpty : bool or int
+        Required. Subtract the empty-cell scattering when an ``'Empty'``
+        entry is present in ``PolSampleSlices``.
+    UseMTCirc : bool
+        Required. Currently unused inside the full-pol processor (kept for
+        API parity with the half-pol / unpol variants).
+    Config : str
+        Required. Configuration label.
+    PolSampleSlices : dict
+        Required. Mapping ``Sample -> slice_key -> {cross_section -> dict}``
+        for the current configuration; ``'Empty'`` is consulted for MT
+        subtraction.
+    Sample : str
+        Required. Sample key to process.
+
+    Returns
+    -------
+    Results : dict
+        Per-slice circ/horz/vert sums plus ``M_Perp``, ``M_Parl_NSF``,
+        and their uncertainties (keys depend on which slices were
+        computed).
+    """
 
     Sub = ""
     HaveMT = 0
@@ -1989,7 +2992,49 @@ def vsans_process_full_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles
     return Results
 
 def vsans_process_half_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, PolSampleSlices, Sample):
-    '''Note uses AutoSubtractEmpty  and UseMTCirc from UserInput.py'''
+    """Combine half-pol (U/D) slices into structural and magnetic results.
+
+    For each requested slice, U and D are optionally MT-subtracted (with
+    the option to use the empty-cell circular slice as the MT source). When
+    both ``Horz`` and ``Vert`` slices exist, computes ``M_Parl`` via both
+    subtraction and division forms plus the structural sum, then saves
+    ``ResultsHalfPol_*`` and ``PlotHalfPol*`` text and PNG files.
+
+    Parameters
+    ----------
+    StructurallyIsotropic : bool
+        Required. Use horizontal sum as the denominator in the ``M_Parl``
+        decomposition when true; vertical otherwise.
+    Slices : Iterable[str]
+        Required. Slice keys.
+    SectorCutAngles : float
+        Required. Sector half-width (degrees).
+    save_path : str
+        Required. Output directory.
+    YesNoShowPlots : bool
+        Required. Display plots in addition to saving.
+    YesNoSetPlotXRange, YesNoSetPlotYRange : bool
+        Required. Toggle manual plot axis limits.
+    PlotXmin, PlotXmax, PlotYmin, PlotYmax : float
+        Required. Manual axis limits.
+    AutoSubtractEmpty : bool or int
+        Required. Subtract empty-cell scattering.
+    UseMTCirc : bool or int
+        Required. Use the empty-cell circular slice as the MT source for
+        Horz/Vert subtractions when both are available.
+    Config : str
+        Required. Configuration label.
+    PolSampleSlices : dict
+        Required. Per-sample half-pol slice dict for this configuration.
+    Sample : str
+        Required. Sample key.
+
+    Returns
+    -------
+    Results : dict
+        ``QCirc`` / ``CircSum`` / ``CircSum_Unc`` when circular data is
+        present; empty otherwise.
+    """
 
     Sub = ""
 
@@ -2223,7 +3268,48 @@ def vsans_process_half_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles
     return Results
 
 def vsans_process_unpol_slices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, PolSampleSlices, Sample):
-    '''Note uses AutoSubtractEmpty  and UseMTCirc from UserInput.py'''
+    """Combine unpolarized slices and save structural / M_Parl_Sub results.
+
+    For each requested slice, applies optional empty-cell subtraction
+    (optionally using the empty circular slice as the MT source) and saves
+    a per-slice ``SliceUnpol_*`` file. When both Horz and Vert slices exist,
+    computes the simple difference (Vert - Horz) as ``M_Parl_Sub`` and the
+    horizontal sum as the structural channel, saving ``ResultsUnpol_*``
+    and ``PlotUnpol*`` text/PNG files.
+
+    Parameters
+    ----------
+    Slices : Iterable[str]
+        Required. Slice keys.
+    SectorCutAngles : float
+        Required. Sector half-width (degrees).
+    save_path : str
+        Required. Output directory.
+    YesNoShowPlots : bool
+        Required. Display plots in addition to saving.
+    YesNoSetPlotXRange, YesNoSetPlotYRange : bool
+        Required. Toggle manual plot axis limits.
+    PlotXmin, PlotXmax, PlotYmin, PlotYmax : float
+        Required. Manual axis limits.
+    AutoSubtractEmpty : bool or int
+        Required. Subtract empty-cell scattering.
+    UseMTCirc : bool or int
+        Required. Use the empty-cell circular slice as the MT source for
+        Horz/Vert subtractions.
+    Config : str
+        Required. Configuration label.
+    PolSampleSlices : dict
+        Required. Per-sample unpol slice dict for this configuration.
+    Sample : str
+        Required. Sample key.
+
+    Returns
+    -------
+    Results : dict
+        Combination of ``QCirc/CircSum/CircSum_Unc``, ``QHorz/HorzSlice/
+        HorzSlice_Unc``, and ``QVert/VertSlice/VertSlice_Unc`` for whichever
+        slices were computed.
+    """
 
     Sub = ""
 
@@ -2439,6 +3525,40 @@ def vsans_process_unpol_slices(Slices, SectorCutAngles, save_path, YesNoShowPlot
     return Results
 
 def annular_average(Detector_Panels, Instrument, save_path, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_total, GeneralMask, ScaledData, ScaledData_Unc):
+    """Plot intensity vs. azimuthal angle, averaged over an annular Q band.
+
+    Steps through 72 sectors covering [0, 360) degrees, computes the
+    per-sector ratio of summed intensity to summed pixels inside the
+    annular band ``[Q_min, Q_max]``, and saves a PNG titled
+    ``AnnularAverage_{Sample},{Config}.png``.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    Instrument : str
+        Required. Instrument identifier (kept for API parity).
+    save_path : str
+        Required. Output directory.
+    Sample, Config : str
+        Required. Labels.
+    InPlaneAngleMap : dict[str, np.ndarray]
+        Required. Per-panel azimuthal angle map.
+    Q_min, Q_max : float
+        Required. Q-band bounds in inverse Angstroms.
+    Q_total : dict[str, np.ndarray]
+        Required. Per-panel |Q| maps.
+    GeneralMask : dict[str, np.ndarray]
+        Required. Per-panel general mask.
+    ScaledData : dict[str, np.ndarray]
+        Required. Per-panel absolute-scaled intensity.
+    ScaledData_Unc : dict[str, np.ndarray]
+        Required. Per-panel uncertainties (kept for API parity; not used).
+
+    Returns
+    -------
+    None
+    """
 
     relevant_detectors = list(Detector_Panels)
     AverageQRanges = 1
@@ -2497,7 +3617,36 @@ def annular_average(Detector_Panels, Instrument, save_path, Sample, Config, InPl
 
     
 def vsans_categorize_samples_and_bases(He3Only_Check, Configs, Sample_Bases, Sample_Names, ScattCatalog, AllFullPolSlices,AllHalfPolSlices, AllUnpolSlices):
-    
+    """Group samples by base name and polarization mode for comparison plots.
+
+    For each configuration, builds three ``{base_name -> [samples]}`` maps
+    listing samples whose name contains the base name, that are marked as
+    ``'Sample'`` in ``ScattCatalog``, and for which slice data exists in
+    the corresponding mode.
+
+    Parameters
+    ----------
+    He3Only_Check : bool
+        Required. If true, all returned maps are empty.
+    Configs : dict[str, int]
+        Required. Configuration label -> representative file number.
+    Sample_Bases : Iterable[str]
+        Required. Base substrings used to group samples.
+    Sample_Names : Iterable[str]
+        Required. Sample keys.
+    ScattCatalog : dict
+        Required. Scattering catalog (consulted for the ``'Intent'`` field).
+    AllFullPolSlices, AllHalfPolSlices, AllUnpolSlices : dict
+        Required. ``Config -> Sample -> slices`` mappings.
+
+    Returns
+    -------
+    All_FullPol_BaseToSampleMap : dict
+    All_HalfPol_BaseToSampleMap : dict
+    All_Unpol_BaseToSampleMap : dict
+        Each ``Config -> Base -> [Sample, ...]``.
+    """
+
     All_FullPol_BaseToSampleMap = {}
     All_HalfPol_BaseToSampleMap = {}
     All_Unpol_BaseToSampleMap = {}
@@ -2547,6 +3696,42 @@ def vsans_categorize_samples_and_bases(He3Only_Check, Configs, Sample_Bases, Sam
     return All_FullPol_BaseToSampleMap, All_HalfPol_BaseToSampleMap, All_Unpol_BaseToSampleMap
 
 def vsans_save_comparative_plots(Slices, ScattCatalog, SectorCutAngles, save_path, FullPol_BaseToSampleMap, HalfPol_BaseToSampleMap, Unpol_BaseToSampleMap, AllFullPolSlices, AllHalfPolSlices, AllUnpolSlices, AllFullPolResults, AllHalfPolResults, AllUnpolResults, Configs, He3Only_Check, CompareUnpolCirc, CompareHalfPolSumCirc, CompareFullPolSumCirc, CompareFullPolStruc, CompareFullPolMagnetism):
+    """Emit per-base comparison plots/text across samples sharing a base name.
+
+    Dispatches several calls into :func:`vsans_comparison_plots_and_text`
+    covering full-pol circular sum, full-pol horizontal NSF sum, half-pol
+    circular sum, unpol circular, and full-pol M_Perp / M_Parl_NSF, gated
+    on the corresponding ``Compare*`` toggles.
+
+    Parameters
+    ----------
+    Slices : Iterable[str]
+        Required. Slice keys actually computed.
+    ScattCatalog : dict
+        Required. Scattering catalog (passed through for ``'Intent'`` checks).
+    SectorCutAngles : float
+        Required. Sector half-width (degrees) — passed through.
+    save_path : str
+        Required. Output directory.
+    FullPol_BaseToSampleMap, HalfPol_BaseToSampleMap, Unpol_BaseToSampleMap : dict
+        Required. ``Config -> Base -> [Sample, ...]`` maps from
+        :func:`vsans_categorize_samples_and_bases`.
+    AllFullPolSlices, AllHalfPolSlices, AllUnpolSlices : dict
+        Required. ``Config -> Sample -> slices`` mappings.
+    AllFullPolResults, AllHalfPolResults, AllUnpolResults : dict
+        Required. ``Config -> Sample -> results`` mappings produced by the
+        slice processors.
+    Configs : dict[str, int]
+        Required. Configuration label -> representative file number.
+    He3Only_Check : bool
+        Required. If true, skip all plotting.
+    CompareUnpolCirc, CompareHalfPolSumCirc, CompareFullPolSumCirc, CompareFullPolStruc, CompareFullPolMagnetism : bool
+        Required. Per-comparison toggles.
+
+    Returns
+    -------
+    None
+    """
 
     if not He3Only_Check:
         for Config in Configs:
@@ -2632,6 +3817,46 @@ def vsans_save_comparative_plots(Slices, ScattCatalog, SectorCutAngles, save_pat
     return
 
 def vsans_comparison_plots_and_text(save_path, Slices, ScattCatalog, Config, CompareVariable, CutVariable, FullCutName, BaseMap, SampleSlices, ResultsArray, QName, IName, UncName):
+    """Overlay one quantity for all samples sharing a base name, save PNG + TXT.
+
+    For each base with at least two qualifying samples, this loops over
+    samples, plots ``ResultsArray[Sample][IName]`` vs ``ResultsArray[Sample][QName]``
+    with ``UncName`` error bars, and writes a stacked ASCII table.
+    No-op if ``CompareVariable`` is not truthy or ``CutVariable`` is not
+    in ``Slices``.
+
+    Parameters
+    ----------
+    save_path : str
+        Required. Output directory.
+    Slices : Iterable[str]
+        Required. Slice keys present in the run.
+    ScattCatalog : dict
+        Required. Scattering catalog (consulted for ``'Intent'``).
+    Config : str
+        Required. Configuration label.
+    CompareVariable : bool or int
+        Required. Master toggle for this comparison.
+    CutVariable : str
+        Required. Slice key that must be present in ``Slices`` for the
+        comparison to run (e.g. ``'Circ'``).
+    FullCutName : str
+        Required. Label used in titles and file names (e.g.
+        ``'FullPolSumCirc'``).
+    BaseMap : dict
+        Required. ``Base -> [Sample, ...]`` map.
+    SampleSlices : dict
+        Required. ``Sample -> slices`` map (used as a presence check).
+    ResultsArray : dict
+        Required. ``Sample -> {QName, IName, UncName, ...}`` results dict.
+    QName, IName, UncName : str
+        Required. Keys in each per-sample results dict that supply the Q
+        array, intensity, and uncertainty respectively.
+
+    Returns
+    -------
+    None
+    """
 
     plot_symbols = ['b*', 'r*', 'g*', 'c*','m*', 'y*', 'k*','b-', 'r-', 'g-', 'c-','m-', 'y-', 'k-']
     symbol_max = 14        
@@ -2753,10 +3978,116 @@ def polarization_correction_pipeline(
     PlotXmax = 0.115, #Only used if YesNoSetPlotXRange = True
     PlotYmin = 1E-4, #Only used if YesNoSetPlotYRange = True
     PlotYmax = 1, #Only used if YesNoSetPlotYRange = True
-    AutoSubtractEmpty = True, 
+    AutoSubtractEmpty = True,
     ConvertHighResToSubset = True):
+    """Run the end-to-end polarization reduction pipeline.
 
-         
+    Composes :func:`vsans_make_slices_and_save_ascii`,
+    :func:`vsans_save_slices_and_results`,
+    :func:`vsans_categorize_samples_and_bases`, and
+    :func:`vsans_save_comparative_plots` to take raw catalogs through
+    absolute scaling, polarization correction, 1-D slicing, optional MT
+    subtraction, and cross-sample comparison plots.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names (e.g. ``['FR','FL','MR','ML',...]``).
+    Instrument : str
+        Required. ``'VSANS'`` or ``'NG7SANS'``.
+    SampleDescriptionKeywordsToExclude : list[str] or None
+        Required. Keywords stripped from sample descriptions; ``None`` is
+        treated as an empty list.
+    UsePolCorr : bool or int
+        Required. If truthy, apply the full polarization-correction matrix
+        inversion; otherwise apply only the He3-efficiency correction.
+    YesNoManualHe3Entry : bool
+        Required. Use manually supplied 3He values rather than NeXus entries.
+    input_path : str
+        Required. Directory containing raw NeXus files.
+    save_path : str
+        Required. Output directory for ASCII and PNG files.
+    HighResMinX, HighResMaxX, HighResMinY, HighResMaxY : int
+        Required. High-resolution back-detector pixel bounds.
+    HighResGain : float
+        Required. Gain factor for the high-resolution back detector.
+    Plex : dict[str, np.ndarray]
+        Required. Per-panel plex / efficiency arrays.
+    HE3_Cell_Summary : dict
+        Required. 3He cell parameter summary.
+    Slices : Iterable[str]
+        Required. Slice keys to compute
+        (``'Circ'``/``'Horz'``/``'Vert'``/``'Diag'``).
+    Truest_PSM : float
+        Required. Best-known supermirror polarization.
+    ScattCatalog, BlockBeamCatalog, TransCatalog, Pol_TransCatalog : dict
+        Required. The four catalogs driving the reduction.
+    Configs : dict[str, int]
+        Required. Configuration label -> representative file number; a
+        value of 0 skips that configuration.
+    Sample_Names : Iterable[str]
+        Required. Sample keys to process.
+    Sample_Bases : Iterable[str]
+        Required. Base substrings used for cross-sample comparison plots.
+    AlignDet_Trans : dict
+        Required. Aligned-transmission catalog.
+    SectorCutAngles : float, optional
+        Sector half-width in degrees (default 15.0).
+    He3CorrectionType : {0, 1, 2}, optional
+        Selects the polarization-efficiency matrix form (default 1 = chi
+        equals upsilon).
+    YesNoShowPlots : bool, optional
+        If true, display generated plots in addition to saving them
+        (default ``False``).
+    StructurallyIsotropic : bool, optional
+        Use horizontal NSF sum as the denominator in the magnetic
+        decomposition when true; vertical otherwise (default ``False``).
+    Minimum_PSM : float, optional
+        Floor applied to measured supermirror polarization (default 0.01).
+    Calc_Q_From_Trans : bool, optional
+        Refine beam center using transmission files (default ``True``).
+    AverageQRanges : bool, optional
+        Average overlapping carriage Q bins instead of trimming
+        (default ``False``).
+    CompareUnpolCirc, CompareHalfPolSumCirc, CompareFullPolSumCirc, CompareFullPolStruc, CompareFullPolMagnetism : bool, optional
+        Toggles for per-base comparison plots (each default ``True``).
+    YesNo_2DCombinedFiles : bool, optional
+        Write combined 2-D ASCII files for SasView (default ``False``).
+    YesNo_2DFilesPerDetector : bool, optional
+        Write one 2-D ASCII file per detector panel (default ``False``).
+    MiddlePixelBorderHorizontal, MiddlePixelBorderVertical : int, optional
+        Width (in pixels) of the masked border on middle-carriage detectors
+        (each default 4).
+    SampleApertureInMM : bool, optional
+        Convert sample-aperture values from mm to cm when true
+        (default ``True``).
+    UseMTCirc : bool, optional
+        Use the empty-cell circular slice as the MT source for Horz/Vert
+        subtraction (default ``True``).
+    He3Only_Check : bool, optional
+        Run only the 3He transmission summary, skip full reduction
+        (default ``False``).
+    Absolute_Q_min, Absolute_Q_max : float, optional
+        Hard Q-range cap in inverse Angstroms
+        (defaults 0.005 and 0.12).
+    YesNoSetPlotXRange, YesNoSetPlotYRange : bool, optional
+        Toggle manual plot axis limits (each default ``False``).
+    PlotXmin, PlotXmax, PlotYmin, PlotYmax : float, optional
+        Manual axis limits used only when toggled on
+        (defaults 0.015, 0.115, 1e-4, 1).
+    AutoSubtractEmpty : bool, optional
+        Subtract the empty-cell scattering when an ``'Empty'`` entry is
+        available (default ``True``).
+    ConvertHighResToSubset : bool, optional
+        Crop the back detector to the high-res pixel bounds
+        (default ``True``).
+
+    Returns
+    -------
+    None
+    """
+
+
     #This is where the polarization correction is applied,
     # and where the final reduced slices are made and saved as ASCII files for plotting in 
     # Origin or other software and for reading into SasView.
