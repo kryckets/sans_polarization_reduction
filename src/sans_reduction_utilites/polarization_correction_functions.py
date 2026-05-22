@@ -4,13 +4,7 @@ from numpy.linalg import inv
 import os
 from scipy import ndimage
 
-import sys
-from pathlib import Path
-# Add src to path
-sys.path.insert(0, str(Path.cwd().parent / 'src'))
-
-# Now import functions
-from sans_reduction_utilites.reduction_functions import get_by_filenumber, sans_sample_base_name_descrip
+from .reduction_functions import get_by_filenumber, sans_sample_base_name_descrip
 
 def he3_pol_at_given_time(entry_time, HE3_Cell_Summary):
     """Compute the 3He cell polarization and transmissions at a given time.
