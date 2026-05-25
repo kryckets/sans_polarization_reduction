@@ -4,7 +4,7 @@ from numpy.linalg import inv
 import os
 from scipy import ndimage
 
-from .reduction_functions import get_by_filenumber, sans_sample_base_name_descrip
+from .reduction_functions import _sans_get_by_filenumber, _sans_sample_base_name_descrip
 
 def he3_pol_at_given_time(entry_time, HE3_Cell_Summary):
     """Compute the 3He cell polarization and transmissions at a given time.
@@ -247,7 +247,7 @@ def solid_angle_all_detectors(Detector_Panels, Instrument, input_path, represent
         relevant_detectors.append('B')
     
     Solid_Angle = {}
-    f = get_by_filenumber(Detector_Panels, Instrument, input_path, representative_filenumber)
+    f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, representative_filenumber)
     if f is not None:
         for dshort in relevant_detectors:
             if 'VSANS' in Instrument:
@@ -316,7 +316,7 @@ def all_sans_blocked_beam_counts_per_second_list_of_files(Detector_Panels, Instr
     item_counter = 0
     for item in filelist:
         filename = input_path + "sans" + str(item) + ".nxs.ngv"
-        f = get_by_filenumber(Detector_Panels, Instrument, input_path, item)
+        f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, item)
         if f is not None:            
             Count_time = f['entry/collection_time'][0]
             if Count_time > 0:
@@ -340,7 +340,7 @@ def all_sans_blocked_beam_counts_per_second_list_of_files(Detector_Panels, Instr
             f.close()
 
     if len(BB_CountsPerSecond) < 1:
-        f = get_by_filenumber(Detector_Panels, Instrument, input_path, examplefilenumber)
+        f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, examplefilenumber)
         if f is not None:
             for dshort in relevant_detectors:
                 if 'VSANS' in Instrument:
@@ -441,7 +441,7 @@ def q_calculation_all_detectors(Detector_Panels, Instrument, SampleApertureInMM,
 
     Sample_Base, Sample_Name, Descrip, Listed_Config, Desired_Temp, Voltage = sans_sample_base_name_descrip(Detector_Panels, Instrument, SampleDescriptionKeywordsToExclude, input_path, representative_filenumber)
 
-    f = get_by_filenumber(Detector_Panels, Instrument, input_path, representative_filenumber)
+    f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, representative_filenumber)
     if f is not None:
         for dshort in relevant_detectors:
             if 'VSANS' in Instrument:
@@ -1034,7 +1034,7 @@ def abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, High
             else:
                 for filenumber in Scatt[Sample]['Config(s)'][Config][ScattType]:
                     filecounter += 1
-                    f = get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
+                    f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
                     if f is not None:
                         MonCounts = f['entry/control/monitor_counts'][0]
                         Count_time = f['entry/collection_time'][0]
@@ -2403,7 +2403,7 @@ def get_beam_center(Detector_Panels, Instrument, input_path, filenumber, dshort,
     """
 
 
-    f = get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
+    f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
     middle_bc_x = 0
     middle_bc_y = 0
     if 'NG7SANS' in Instrument: #Will add functionality to NG7SANS
@@ -2606,7 +2606,7 @@ def all_sans_pol_corr_scatt_files(Detector_Panels, Instrument, UsePolCorr, input
             filenumber_counter = 0
             for filenumber in Scatt[Sample]['Config(s)'][Config][type]:
                 #Check this correction
-                f = get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
+                f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
                 if f is not None:
                     entry = Scatt[Sample]['Config(s)'][Config][type_time][filenumber_counter]
                     NP, UT, T_MAJ, T_MIN = he3_pol_at_given_time(entry, HE3_Cell_Summary)
