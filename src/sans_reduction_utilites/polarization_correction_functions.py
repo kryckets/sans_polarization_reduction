@@ -6,7 +6,7 @@ from scipy import ndimage
 
 from .reduction_functions import _sans_get_by_filenumber, _sans_sample_base_name_descrip
 
-def he3_pol_at_given_time(entry_time, HE3_Cell_Summary):
+def _he3_pol_at_given_time(entry_time, HE3_Cell_Summary):
     """Compute the 3He cell polarization and transmissions at a given time.
 
     Uses the decay parameters of the most recently inserted cell relative to
@@ -56,7 +56,7 @@ def he3_pol_at_given_time(entry_time, HE3_Cell_Summary):
         
     return NeutronPol, UnpolHE3Trans, T_MAJ, T_MIN
 
-def sans_record_data_processing(save_path, Plex_Name = 'not used', Scatt = {}, BlockBeam = {}, Trans = {}, Pol_Trans = {}, HE3_Cell_Summary = {}, YesNoManualHe3Entry = False, Contents = 'not used'):
+def _sans_record_data_processing(save_path, Plex_Name = 'not used', Scatt = {}, BlockBeam = {}, Trans = {}, Pol_Trans = {}, HE3_Cell_Summary = {}, YesNoManualHe3Entry = False, Contents = 'not used'):
     """Write a human-readable summary of the data reduction inputs.
 
     Produces ``DataReductionSummary.txt`` inside ``save_path`` recording the
@@ -183,7 +183,7 @@ def sans_record_data_processing(save_path, Plex_Name = 'not used', Scatt = {}, B
 
     return
 
-def he3_evaluation(He3Only_Check, HE3_TransCatalog):
+def _he3_evaluation(He3Only_Check, HE3_TransCatalog):
     """Print a per-cell listing of 3He transmission measurements.
 
     Useful for the helium team to inspect transmission files without
@@ -214,7 +214,7 @@ def he3_evaluation(He3Only_Check, HE3_TransCatalog):
                       HE3_TransCatalog[entry]['Elasped_time'][holder], HE3_TransCatalog[entry]['Config'][holder])
     return
 
-def solid_angle_all_detectors(Detector_Panels, Instrument, input_path, representative_filenumber, Config):
+def _solid_angle_all_detectors(Detector_Panels, Instrument, input_path, representative_filenumber, Config):
     """Compute the per-pixel solid angle for every relevant detector panel.
 
     Reads the geometry of ``representative_filenumber`` and returns the
@@ -271,7 +271,7 @@ def solid_angle_all_detectors(Detector_Panels, Instrument, input_path, represent
 
     return Solid_Angle
 
-def all_sans_blocked_beam_counts_per_second_list_of_files(Detector_Panels, Instrument, input_path, filelist, Config, examplefilenumber):
+def _all_sans_blocked_beam_counts_per_second_list_of_files(Detector_Panels, Instrument, input_path, filelist, Config, examplefilenumber):
     """Sum a list of block-beam files and return per-pixel counts/second.
 
     Accumulates counts and live time across ``filelist``, then divides to
@@ -353,7 +353,7 @@ def all_sans_blocked_beam_counts_per_second_list_of_files(Detector_Panels, Instr
 
     return BB_CountsPerSecond, BB_Unc #returns empty list or 2D, detector-panel arrays
 
-def q_calculation_all_detectors(Detector_Panels, Instrument, SampleApertureInMM, SampleDescriptionKeywordsToExclude, input_path, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, representative_filenumber, Config, MiddlePixelBorderHorizontal, MiddlePixelBorderVertical, AlignDet_Trans):
+def _q_calculation_all_detectors(Detector_Panels, Instrument, SampleApertureInMM, SampleDescriptionKeywordsToExclude, input_path, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, representative_filenumber, Config, MiddlePixelBorderHorizontal, MiddlePixelBorderVertical, AlignDet_Trans):
     """Build per-pixel Q maps and a shadow mask for every relevant panel.
 
     Computes pixel-level ``Qx``, ``Qy``, ``Qz``, ``|Q|``, parallel and
@@ -378,7 +378,7 @@ def q_calculation_all_detectors(Detector_Panels, Instrument, SampleApertureInMM,
     Calc_Q_From_Trans : bool
         Required. If true, override the recorded beam center with one
         derived from aligned transmission files via
-        :func:`assign_beam_center_for_scatt_file`.
+        :func:`_assign_beam_center_for_scatt_file`.
     HighResMinX, HighResMaxX, HighResMinY, HighResMaxY : int
         Required. Pixel-index bounds defining the high-resolution back
         detector subset.
@@ -394,7 +394,7 @@ def q_calculation_all_detectors(Detector_Panels, Instrument, SampleApertureInMM,
         carriage detectors.
     AlignDet_Trans : dict
         Required. Aligned-transmission catalog used by
-        :func:`assign_beam_center_for_scatt_file`.
+        :func:`_assign_beam_center_for_scatt_file`.
 
     Returns
     -------
@@ -448,7 +448,7 @@ def q_calculation_all_detectors(Detector_Panels, Instrument, SampleApertureInMM,
                 beam_center_x = f['entry/instrument/detector_{ds}/beam_center_x'.format(ds=dshort)][0]
                 beam_center_y = f['entry/instrument/detector_{ds}/beam_center_y'.format(ds=dshort)][0]
                 if Calc_Q_From_Trans:
-                    X_FR, Y_FR, X_MR, Y_MR = assign_beam_center_for_scatt_file(Instrument, input_path, Sample_Name, Config, AlignDet_Trans)
+                    X_FR, Y_FR, X_MR, Y_MR = _assign_beam_center_for_scatt_file(Instrument, input_path, Sample_Name, Config, AlignDet_Trans)
                     x_ctr_offset = 0.0
                     y_ctr_offset = 0.0
                     beam_center_x_infile = beam_center_x
@@ -717,7 +717,7 @@ def q_calculation_all_detectors(Detector_Panels, Instrument, SampleApertureInMM,
 
     return Qx, Qy, Qz, Q_total, Q_perp_unc, Q_parl_unc, InPlaneAngleMap, dimXX, dimYY, Shadow_Mask
 
-def sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, PrimaryAngle, AngleWidth, BothSides):
+def _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, PrimaryAngle, AngleWidth, BothSides):
     """Build a per-panel azimuthal sector mask.
 
     Returns 1.0 where pixels lie within ``AngleWidth`` of ``PrimaryAngle``
@@ -781,7 +781,7 @@ def sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap
         
     return SectorMask
 
-def min_max_q(Detector_Panels, Instrument, Absolute_Q_min, Absolute_Q_max, Q_total, Config, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY):
+def _min_max_q(Detector_Panels, Instrument, Absolute_Q_min, Absolute_Q_max, Q_total, Config, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY):
     """Choose Q binning limits and bin count for the current configuration.
 
     Selects ``Q_min`` and ``Q_max`` as the tighter of user-supplied absolute
@@ -799,7 +799,7 @@ def min_max_q(Detector_Panels, Instrument, Absolute_Q_min, Absolute_Q_max, Q_tot
     Absolute_Q_min, Absolute_Q_max : float
         Required. User-imposed absolute Q limits in inverse Angstroms.
     Q_total : dict[str, np.ndarray]
-        Required. Per-panel |Q| maps from :func:`q_calculation_all_detectors`.
+        Required. Per-panel |Q| maps from :func:`_q_calculation_all_detectors`.
     Config : str
         Required. Configuration label.
     HighResMinX, HighResMaxX, HighResMinY, HighResMaxY : int
@@ -852,12 +852,12 @@ def min_max_q(Detector_Panels, Instrument, Absolute_Q_min, Absolute_Q_max, Q_tot
     
     return Q_min, Q_max, Q_bins
 
-def assign_beam_center_for_scatt_file(Instrument, input_path, Sample_Name, Config, AlignTrans):
+def _assign_beam_center_for_scatt_file(Instrument, input_path, Sample_Name, Config, AlignTrans):
     """Look up the FR and MR beam-center coordinates for a sample/config.
 
     Selects an aligned-transmission file (polarized preferred, unpolarized
     fallback) for the FR and MR panels and computes the beam center via
-    :func:`get_beam_center`. Returns ``'NA'`` for any axis that cannot be
+    :func:`_get_beam_center`. Returns ``'NA'`` for any axis that cannot be
     resolved.
 
     Parameters
@@ -903,13 +903,13 @@ def assign_beam_center_for_scatt_file(Instrument, input_path, Sample_Name, Confi
 
         trans_max_width_pixels = 10
         if FR_filenumber != 0:
-            X_FR, Y_FR = get_beam_center(Instrument, input_path, FR_filenumber, 'FR', trans_max_width_pixels)
+            X_FR, Y_FR = _get_beam_center(Instrument, input_path, FR_filenumber, 'FR', trans_max_width_pixels)
         if MR_filenumber != 0:
-            X_MR, Y_MR = get_beam_center(Instrument, input_path, MR_filenumber, 'MR', trans_max_width_pixels)
+            X_MR, Y_MR = _get_beam_center(Instrument, input_path, MR_filenumber, 'MR', trans_max_width_pixels)
 
     return X_FR, Y_FR, X_MR, Y_MR
 
-def abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, ScattType, Sample, Config, BlockBeam_per_second, Solid_Angle, Plex, Scatt, Trans):
+def _abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, ScattType, Sample, Config, BlockBeam_per_second, Solid_Angle, Plex, Scatt, Trans):
     """Absolute-scale and block-beam-subtract the scattering for one cross-section.
 
     For each run in ``Scatt[Sample]['Config(s)'][Config][ScattType]`` the
@@ -1054,13 +1054,13 @@ def abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, High
                 
     return Scaled_Data, UncScaled_Data
 
-def sans_make_slices_and_save_ascii(YesNoShowPlots, Detector_Panels, Instrument, SampleApertureInMM, SampleDescriptionKeywordsToExclude, UsePolCorr, YesNoManualHe3Entry, input_path, save_path, He3CorrectionType, YesNo_2DFilesPerDetector, YesNo_2DCombinedFiles, Absolute_Q_min, Absolute_Q_max, AverageQRanges, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, HE3_Cell_Summary, Plex, Truest_PSM, Minimum_PSM, AlignDet_Trans, He3Only_Check, ScattCatalog, BlockBeamCatalog, Configs, Sample_Names, TransCatalog, Pol_TransCatalog, MiddlePixelBorderHorizontal, MiddlePixelBorderVertical, SectorCutAngles, Slices,  YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax):
+def _sans_make_slices_and_save_ascii(YesNoShowPlots, Detector_Panels, Instrument, SampleApertureInMM, SampleDescriptionKeywordsToExclude, UsePolCorr, YesNoManualHe3Entry, input_path, save_path, He3CorrectionType, YesNo_2DFilesPerDetector, YesNo_2DCombinedFiles, Absolute_Q_min, Absolute_Q_max, AverageQRanges, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, HE3_Cell_Summary, Plex, Truest_PSM, Minimum_PSM, AlignDet_Trans, He3Only_Check, ScattCatalog, BlockBeamCatalog, Configs, Sample_Names, TransCatalog, Pol_TransCatalog, MiddlePixelBorderHorizontal, MiddlePixelBorderVertical, SectorCutAngles, Slices,  YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax):
     """Drive the per-sample, per-configuration scaling, pol-correction, and slicing.
 
     For every configuration in ``Configs`` and every sample in ``Sample_Names``
     this scales the four polarized cross-sections, half-pol pair, and unpol
-    runs (via :func:`abs_scale`); applies the full polarization correction
-    (via :func:`all_sans_pol_corr_scatt_files`); optionally writes 2-D
+    runs (via :func:`_abs_scale`); applies the full polarization correction
+    (via :func:`_all_sans_pol_corr_scatt_files`); optionally writes 2-D
     ASCII files (per-panel and/or combined); and produces 1-D slices (circ /
     horz / vert / diag) for full-pol, half-pol, and unpol samples.
 
@@ -1073,7 +1073,7 @@ def sans_make_slices_and_save_ascii(YesNoShowPlots, Detector_Panels, Instrument,
     Instrument : str
         Required. ``'VSANS'`` or ``'NG7SANS'``.
     SampleApertureInMM : bool
-        Required. See :func:`q_calculation_all_detectors`.
+        Required. See :func:`_q_calculation_all_detectors`.
     SampleDescriptionKeywordsToExclude : list[str] or None
         Required. Keywords stripped from sample descriptions; ``None`` is
         treated as an empty list.
@@ -1086,7 +1086,7 @@ def sans_make_slices_and_save_ascii(YesNoShowPlots, Detector_Panels, Instrument,
         Required. Input file directory and output directory.
     He3CorrectionType : {0, 1, 2}
         Required. Selects the polarization-efficiency matrix form (see
-        :func:`all_sans_pol_corr_scatt_files`).
+        :func:`_all_sans_pol_corr_scatt_files`).
     YesNo_2DFilesPerDetector, YesNo_2DCombinedFiles : bool
         Required. Toggles for writing per-panel and combined 2-D ASCII files.
     Absolute_Q_min, Absolute_Q_max : float
@@ -1150,17 +1150,17 @@ def sans_make_slices_and_save_ascii(YesNoShowPlots, Detector_Panels, Instrument,
         for Config in Configs:
             representative_filenumber = Configs[Config]
             if representative_filenumber != 0:
-                Solid_Angle = solid_angle_all_detectors(Detector_Panels, Instrument, input_path, representative_filenumber, Config)
+                Solid_Angle = _solid_angle_all_detectors(Detector_Panels, Instrument, input_path, representative_filenumber, Config)
                 BBList = [0]
                 if Config in BlockBeamCatalog:
                     if 'NA' not in BlockBeamCatalog[Config]['Trans']['File']:
                         BBList = BlockBeamCatalog[Config]['Trans']['File']
                     elif 'NA' not in BlockBeamCatalog[Config]['Scatt']['File']:
                         BBList = BlockBeamCatalog[Config]['Scatt']['File']
-                BB_per_second, BBUnc_per_second = all_sans_blocked_beam_counts_per_second_list_of_files(Detector_Panels, Instrument, input_path, BBList, Config, representative_filenumber)
-                Qx, Qy, Qz, Q_total, Q_perp_unc, Q_parl_unc, InPlaneAngleMap, dimXX, dimYY, Shadow_Mask = q_calculation_all_detectors(Detector_Panels, Instrument, SampleApertureInMM, SampleDescriptionKeywordsToExclude, input_path, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, representative_filenumber, Config, MiddlePixelBorderHorizontal, MiddlePixelBorderVertical, AlignDet_Trans)
+                BB_per_second, BBUnc_per_second = _all_sans_blocked_beam_counts_per_second_list_of_files(Detector_Panels, Instrument, input_path, BBList, Config, representative_filenumber)
+                Qx, Qy, Qz, Q_total, Q_perp_unc, Q_parl_unc, InPlaneAngleMap, dimXX, dimYY, Shadow_Mask = _q_calculation_all_detectors(Detector_Panels, Instrument, SampleApertureInMM, SampleDescriptionKeywordsToExclude, input_path, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, representative_filenumber, Config, MiddlePixelBorderHorizontal, MiddlePixelBorderVertical, AlignDet_Trans)
                 QValues_All = {'QX':Qx,'QY':Qy,'QZ':Qz,'Q_total':Q_total,'Q_perp_unc':Q_perp_unc,'Q_parl_unc':Q_parl_unc}
-                Q_min, Q_max, Q_bins = min_max_q(Detector_Panels, Instrument, Absolute_Q_min, Absolute_Q_max, Q_total, Config, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY)
+                Q_min, Q_max, Q_bins = _min_max_q(Detector_Panels, Instrument, Absolute_Q_min, Absolute_Q_max, Q_total, Config, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY)
                             
                 relevant_detectors = list(Detector_Panels)
                 if str(Config).find('CvB') != -1:
@@ -1172,80 +1172,80 @@ def sans_make_slices_and_save_ascii(YesNoShowPlots, Detector_Panels, Instrument,
                 UnpolSampleSlices = {}
                 for Sample in Sample_Names:
                     if Sample in ScattCatalog:
-                        assign_beam_center_for_scatt_file(Instrument, input_path, Sample, Config, AlignDet_Trans)
+                        _assign_beam_center_for_scatt_file(Instrument, input_path, Sample, Config, AlignDet_Trans)
                                                     
                         if str(ScattCatalog[Sample]['Intent']).find('Sample') != -1 or str(ScattCatalog[Sample]['Intent']).find('Empty') != -1:
 
-                            UUScaledData, UUScaledData_Unc = abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, 'UU', Sample, Config, BB_per_second, Solid_Angle, Plex, ScattCatalog, TransCatalog)
-                            DUScaledData, DUScaledData_Unc = abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, 'DU', Sample, Config, BB_per_second, Solid_Angle, Plex, ScattCatalog, TransCatalog)
-                            DDScaledData, DDScaledData_Unc = abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, 'DD', Sample, Config, BB_per_second, Solid_Angle, Plex, ScattCatalog, TransCatalog)
-                            UDScaledData, UDScaledData_Unc = abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, 'UD', Sample, Config, BB_per_second, Solid_Angle, Plex, ScattCatalog, TransCatalog)
+                            UUScaledData, UUScaledData_Unc = _abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, 'UU', Sample, Config, BB_per_second, Solid_Angle, Plex, ScattCatalog, TransCatalog)
+                            DUScaledData, DUScaledData_Unc = _abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, 'DU', Sample, Config, BB_per_second, Solid_Angle, Plex, ScattCatalog, TransCatalog)
+                            DDScaledData, DDScaledData_Unc = _abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, 'DD', Sample, Config, BB_per_second, Solid_Angle, Plex, ScattCatalog, TransCatalog)
+                            UDScaledData, UDScaledData_Unc = _abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, 'UD', Sample, Config, BB_per_second, Solid_Angle, Plex, ScattCatalog, TransCatalog)
                             FullPolGo = 0
                             if 'NA' not in UUScaledData and 'NA' not in DUScaledData and 'NA' not in DDScaledData and 'NA' not in UDScaledData:
 
                                 
                                 representative_filenumber = ScattCatalog[Sample]['Config(s)'][Config]['UU'][0]
-                                Qx, Qy, Qz, Q_total, Q_perp_unc, Q_parl_unc, InPlaneAngleMap, dimXX, dimYY, Shadow_Mask = q_calculation_all_detectors(Detector_Panels, Instrument, SampleApertureInMM, SampleDescriptionKeywordsToExclude, input_path, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, representative_filenumber, Config, MiddlePixelBorderHorizontal, MiddlePixelBorderVertical, AlignDet_Trans)
+                                Qx, Qy, Qz, Q_total, Q_perp_unc, Q_parl_unc, InPlaneAngleMap, dimXX, dimYY, Shadow_Mask = _q_calculation_all_detectors(Detector_Panels, Instrument, SampleApertureInMM, SampleDescriptionKeywordsToExclude, input_path, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, representative_filenumber, Config, MiddlePixelBorderHorizontal, MiddlePixelBorderVertical, AlignDet_Trans)
                                 QValues_All = {'QX':Qx,'QY':Qy,'QZ':Qz,'Q_total':Q_total,'Q_perp_unc':Q_perp_unc,'Q_parl_unc':Q_parl_unc}
-                                FullPolGo, UnpolEquiv, PolCorrUU, PolCorrDU, PolCorrDD, PolCorrUD, UnpolEquiv_Unc, PolCorrUU_Unc, PolCorrDU_Unc, PolCorrDD_Unc, PolCorrUD_Unc = all_sans_pol_corr_scatt_files(Detector_Panels, Instrument, UsePolCorr, input_path, He3CorrectionType, Truest_PSM, Minimum_PSM, dimXX, dimYY, Sample, Config, ScattCatalog, TransCatalog, Pol_TransCatalog, UUScaledData, DUScaledData, DDScaledData, UDScaledData, UUScaledData_Unc, DUScaledData_Unc, DDScaledData_Unc, UDScaledData_Unc, HE3_Cell_Summary)
+                                FullPolGo, UnpolEquiv, PolCorrUU, PolCorrDU, PolCorrDD, PolCorrUD, UnpolEquiv_Unc, PolCorrUU_Unc, PolCorrDU_Unc, PolCorrDD_Unc, PolCorrUD_Unc = _all_sans_pol_corr_scatt_files(Detector_Panels, Instrument, UsePolCorr, input_path, He3CorrectionType, Truest_PSM, Minimum_PSM, dimXX, dimYY, Sample, Config, ScattCatalog, TransCatalog, Pol_TransCatalog, UUScaledData, DUScaledData, DDScaledData, UDScaledData, UUScaledData_Unc, DUScaledData_Unc, DDScaledData_Unc, UDScaledData_Unc, HE3_Cell_Summary)
 
                                 if YesNo_2DCombinedFiles:
                                     if FullPolGo >= 2:
-                                        ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'PolCorrUU', Sample, Config, PolCorrUU, PolCorrUU_Unc, QValues_All, Shadow_Mask)
-                                        ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'PolCorrDU', Sample, Config, PolCorrDU, PolCorrDU_Unc, QValues_All, Shadow_Mask)
-                                        ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'PolCorrDD', Sample, Config, PolCorrDD, PolCorrDD_Unc, QValues_All, Shadow_Mask)
-                                        ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'PolCorrUD', Sample, Config, PolCorrUD, PolCorrUD_Unc, QValues_All, Shadow_Mask)
-                                        ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'PolCorrSumAllCS', Sample, Config, UnpolEquiv, UnpolEquiv_Unc, QValues_All, Shadow_Mask)
+                                        _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'PolCorrUU', Sample, Config, PolCorrUU, PolCorrUU_Unc, QValues_All, Shadow_Mask)
+                                        _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'PolCorrDU', Sample, Config, PolCorrDU, PolCorrDU_Unc, QValues_All, Shadow_Mask)
+                                        _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'PolCorrDD', Sample, Config, PolCorrDD, PolCorrDD_Unc, QValues_All, Shadow_Mask)
+                                        _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'PolCorrUD', Sample, Config, PolCorrUD, PolCorrUD_Unc, QValues_All, Shadow_Mask)
+                                        _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'PolCorrSumAllCS', Sample, Config, UnpolEquiv, UnpolEquiv_Unc, QValues_All, Shadow_Mask)
                                     elif FullPolGo >= 1 and FullPolGo < 2:
-                                        ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'He3CorrUU', Sample, Config, PolCorrUU, PolCorrUU_Unc, QValues_All, Shadow_Mask)
-                                        ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'He3CorrDU', Sample, Config, PolCorrDU, PolCorrDU_Unc, QValues_All, Shadow_Mask)
-                                        ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'He3CorrDD', Sample, Config, PolCorrDD, PolCorrDD_Unc, QValues_All, Shadow_Mask)
-                                        ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'He3CorrUD', Sample, Config, PolCorrUD, PolCorrUD_Unc, QValues_All, Shadow_Mask)
-                                        ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'He3CorrSumAllCS', Sample, Config, UnpolEquiv, UnpolEquiv_Unc, QValues_All, Shadow_Mask)
+                                        _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'He3CorrUU', Sample, Config, PolCorrUU, PolCorrUU_Unc, QValues_All, Shadow_Mask)
+                                        _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'He3CorrDU', Sample, Config, PolCorrDU, PolCorrDU_Unc, QValues_All, Shadow_Mask)
+                                        _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'He3CorrDD', Sample, Config, PolCorrDD, PolCorrDD_Unc, QValues_All, Shadow_Mask)
+                                        _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'He3CorrUD', Sample, Config, PolCorrUD, PolCorrUD_Unc, QValues_All, Shadow_Mask)
+                                        _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'He3CorrSumAllCS', Sample, Config, UnpolEquiv, UnpolEquiv_Unc, QValues_All, Shadow_Mask)
                                     else:
-                                        ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'NotCorrUU', Sample, Config, UUScaledData, UUScaledData_Unc, QValues_All, Shadow_Mask)
-                                        ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'NotCorrDU', Sample, Config, DUScaledData, DUScaledData_Unc, QValues_All, Shadow_Mask)
-                                        ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'NotCorrDD', Sample, Config, DDScaledData, DDScaledData_Unc, QValues_All, Shadow_Mask)
-                                        ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'NotCorrUD', Sample, Config, UDScaledData, UDScaledData_Unc, QValues_All, Shadow_Mask)
+                                        _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'NotCorrUU', Sample, Config, UUScaledData, UUScaledData_Unc, QValues_All, Shadow_Mask)
+                                        _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'NotCorrDU', Sample, Config, DUScaledData, DUScaledData_Unc, QValues_All, Shadow_Mask)
+                                        _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'NotCorrDD', Sample, Config, DDScaledData, DDScaledData_Unc, QValues_All, Shadow_Mask)
+                                        _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'NotCorrUD', Sample, Config, UDScaledData, UDScaledData_Unc, QValues_All, Shadow_Mask)
 
                                 if str(ScattCatalog[Sample]['Intent']).find('Sample') != -1:
                                     SiMirror = ScattCatalog[Sample]['Config(s)'][Config]['SiMirror']
-                                    FullPolSampleSlices[Sample] = sans_full_pol_slices(YesNoShowPlots, save_path, Detector_Panels, SiMirror, Slices, SectorCutAngles, AverageQRanges, FullPolGo, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, PolCorrUU, PolCorrUU_Unc, PolCorrDU, PolCorrDU_Unc, PolCorrDD, PolCorrDD_Unc, PolCorrUD, PolCorrUD_Unc, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax)
+                                    FullPolSampleSlices[Sample] = _sans_full_pol_slices(YesNoShowPlots, save_path, Detector_Panels, SiMirror, Slices, SectorCutAngles, AverageQRanges, FullPolGo, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, PolCorrUU, PolCorrUU_Unc, PolCorrDU, PolCorrDU_Unc, PolCorrDD, PolCorrDD_Unc, PolCorrUD, PolCorrUD_Unc, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax)
                                 if str(ScattCatalog[Sample]['Intent']).find('Empty') != -1:
                                     SiMirror = ScattCatalog[Sample]['Config(s)'][Config]['SiMirror']
-                                    FullPolSampleSlices['Empty'] = sans_full_pol_slices(YesNoShowPlots, save_path, Detector_Panels, SiMirror, Slices, SectorCutAngles, AverageQRanges, FullPolGo, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, PolCorrUU, PolCorrUU_Unc, PolCorrDU, PolCorrDU_Unc, PolCorrDD, PolCorrDD_Unc, PolCorrUD, PolCorrUD_Unc, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax)
+                                    FullPolSampleSlices['Empty'] = _sans_full_pol_slices(YesNoShowPlots, save_path, Detector_Panels, SiMirror, Slices, SectorCutAngles, AverageQRanges, FullPolGo, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, PolCorrUU, PolCorrUU_Unc, PolCorrDU, PolCorrDU_Unc, PolCorrDD, PolCorrDD_Unc, PolCorrUD, PolCorrUD_Unc, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax)
                             
-                            UScaledData, UScaledData_Unc = abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, 'U', Sample, Config, BB_per_second, Solid_Angle, Plex, ScattCatalog, TransCatalog)
-                            DScaledData, DScaledData_Unc = abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, 'D', Sample, Config, BB_per_second, Solid_Angle, Plex, ScattCatalog, TransCatalog)
+                            UScaledData, UScaledData_Unc = _abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, 'U', Sample, Config, BB_per_second, Solid_Angle, Plex, ScattCatalog, TransCatalog)
+                            DScaledData, DScaledData_Unc = _abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, 'D', Sample, Config, BB_per_second, Solid_Angle, Plex, ScattCatalog, TransCatalog)
                             if 'NA' not in UScaledData and 'NA' not in DScaledData:
                                 if YesNo_2DCombinedFiles:
                                     representative_filenumber = ScattCatalog[Sample]['Config(s)'][Config]['U'][0]
-                                    Qx, Qy, Qz, Q_total, Q_perp_unc, Q_parl_unc, InPlaneAngleMap, dimXX, dimYY, Shadow_Mask = q_calculation_all_detectors(Detector_Panels, Instrument, SampleApertureInMM,SampleDescriptionKeywordsToExclude, input_path, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, representative_filenumber, Config, MiddlePixelBorderHorizontal, MiddlePixelBorderVertical, AlignDet_Trans)
+                                    Qx, Qy, Qz, Q_total, Q_perp_unc, Q_parl_unc, InPlaneAngleMap, dimXX, dimYY, Shadow_Mask = _q_calculation_all_detectors(Detector_Panels, Instrument, SampleApertureInMM,SampleDescriptionKeywordsToExclude, input_path, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, representative_filenumber, Config, MiddlePixelBorderHorizontal, MiddlePixelBorderVertical, AlignDet_Trans)
                                     QValues_All = {'QX':Qx,'QY':Qy,'QZ':Qz,'Q_total':Q_total,'Q_perp_unc':Q_perp_unc,'Q_parl_unc':Q_parl_unc}
-                                    ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'U', Sample, Config, UScaledData, UScaledData_Unc, QValues_All, Shadow_Mask)
-                                    ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'D', Sample, Config, DScaledData, DScaledData_Unc, QValues_All, Shadow_Mask)
-                                    ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'DMinusU', Sample, Config, DiffData, DiffData_Unc, QValues_All, Shadow_Mask)
-                                    ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'DPlusU', Sample, Config, SumData, SumData_Unc, QValues_All, Shadow_Mask)
+                                    _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'U', Sample, Config, UScaledData, UScaledData_Unc, QValues_All, Shadow_Mask)
+                                    _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'D', Sample, Config, DScaledData, DScaledData_Unc, QValues_All, Shadow_Mask)
+                                    _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'DMinusU', Sample, Config, DiffData, DiffData_Unc, QValues_All, Shadow_Mask)
+                                    _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'DPlusU', Sample, Config, SumData, SumData_Unc, QValues_All, Shadow_Mask)
                                 if str(ScattCatalog[Sample]['Intent']).find('Sample') != -1:
                                     SiMirror = ScattCatalog[Sample]['Config(s)'][Config]['SiMirror']
-                                    HalfPolSampleSlices[Sample] = sans_half_pol_slices(Detector_Panels, SiMirror, Slices, SectorCutAngles, AverageQRanges, 'HalfPol', Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, UScaledData, UScaledData_Unc, DScaledData, DScaledData_Unc)
+                                    HalfPolSampleSlices[Sample] = _sans_half_pol_slices(Detector_Panels, SiMirror, Slices, SectorCutAngles, AverageQRanges, 'HalfPol', Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, UScaledData, UScaledData_Unc, DScaledData, DScaledData_Unc)
                                 if str(ScattCatalog[Sample]['Intent']).find('Empty') != -1:
                                     SiMirror = ScattCatalog[Sample]['Config(s)'][Config]['SiMirror']
-                                    HalfPolSampleSlices['Empty'] = sans_half_pol_slices(Detector_Panels, SiMirror, Slices, SectorCutAngles, AverageQRanges, 'HalfPol', Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, UScaledData, UScaledData_Unc, DScaledData, DScaledData_Unc)
+                                    HalfPolSampleSlices['Empty'] = _sans_half_pol_slices(Detector_Panels, SiMirror, Slices, SectorCutAngles, AverageQRanges, 'HalfPol', Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, UScaledData, UScaledData_Unc, DScaledData, DScaledData_Unc)
 
-                            UnpolScaledData, UnpolScaledData_Unc = abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, 'Unpol', Sample, Config, BB_per_second, Solid_Angle, Plex, ScattCatalog, TransCatalog)
+                            UnpolScaledData, UnpolScaledData_Unc = _abs_scale(Detector_Panels, Instrument, YesNoManualHe3Entry, input_path, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, HighResGain, 'Unpol', Sample, Config, BB_per_second, Solid_Angle, Plex, ScattCatalog, TransCatalog)
                             if 'NA' not in UnpolScaledData:
                                 if YesNo_2DCombinedFiles:
                                     representative_filenumber = ScattCatalog[Sample]['Config(s)'][Config]['Unpol'][0]
-                                    Qx, Qy, Qz, Q_total, Q_perp_unc, Q_parl_unc, InPlaneAngleMap, dimXX, dimYY, Shadow_Mask = q_calculation_all_detectors(Detector_Panels, Instrument, SampleApertureInMM,SampleDescriptionKeywordsToExclude, input_path, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, representative_filenumber, Config, MiddlePixelBorderHorizontal, MiddlePixelBorderVertical, AlignDet_Trans)
+                                    Qx, Qy, Qz, Q_total, Q_perp_unc, Q_parl_unc, InPlaneAngleMap, dimXX, dimYY, Shadow_Mask = _q_calculation_all_detectors(Detector_Panels, Instrument, SampleApertureInMM,SampleDescriptionKeywordsToExclude, input_path, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, representative_filenumber, Config, MiddlePixelBorderHorizontal, MiddlePixelBorderVertical, AlignDet_Trans)
                                     QValues_All = {'QX':Qx,'QY':Qy,'QZ':Qz,'Q_total':Q_total,'Q_perp_unc':Q_perp_unc,'Q_parl_unc':Q_parl_unc}
-                                    ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'Unpol', Sample, Config, UnpolScaledData, UnpolScaledData_Unc, QValues_All, Shadow_Mask)
+                                    _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, 'Unpol', Sample, Config, UnpolScaledData, UnpolScaledData_Unc, QValues_All, Shadow_Mask)
                                 if str(ScattCatalog[Sample]['Intent']).find('Sample') != -1:
                                     SiMirror = ScattCatalog[Sample]['Config(s)'][Config]['SiMirror']
-                                    UnpolSampleSlices[Sample] = sans_unpol_slices(Detector_Panels, SiMirror, Slices, SectorCutAngles, AverageQRanges, 'Unpol', Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, UnpolScaledData, UnpolScaledData_Unc)
+                                    UnpolSampleSlices[Sample] = _sans_unpol_slices(Detector_Panels, SiMirror, Slices, SectorCutAngles, AverageQRanges, 'Unpol', Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, UnpolScaledData, UnpolScaledData_Unc)
                                 if str(ScattCatalog[Sample]['Intent']).find('Empty') != -1:
                                     SiMirror = ScattCatalog[Sample]['Config(s)'][Config]['SiMirror']
-                                    UnpolSampleSlices['Empty'] = sans_unpol_slices(Detector_Panels, SiMirror, Slices, SectorCutAngles, AverageQRanges, 'Unpol', Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, UnpolScaledData, UnpolScaledData_Unc)
+                                    UnpolSampleSlices['Empty'] = _sans_unpol_slices(Detector_Panels, SiMirror, Slices, SectorCutAngles, AverageQRanges, 'Unpol', Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, UnpolScaledData, UnpolScaledData_Unc)
 
                 AllFullPolSlices[Config] = FullPolSampleSlices
                 AllHalfPolSlices[Config] = HalfPolSampleSlices
@@ -1254,11 +1254,11 @@ def sans_make_slices_and_save_ascii(YesNoShowPlots, Detector_Panels, Instrument,
     return AllFullPolSlices, AllHalfPolSlices, AllUnpolSlices
 
 
-def sans_full_pol_slices(YesNoShowPlots, save_path, Detector_Panels, SiMirror, Slices, SectorCutAngles, AverageQRanges, PolCorrDegree, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, PolCorrUU, PolCorrUU_Unc, PolCorrDU, PolCorrDU_Unc, PolCorrDD, PolCorrDD_Unc, PolCorrUD, PolCorrUD_Unc, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax):
+def _sans_full_pol_slices(YesNoShowPlots, save_path, Detector_Panels, SiMirror, Slices, SectorCutAngles, AverageQRanges, PolCorrDegree, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, PolCorrUU, PolCorrUU_Unc, PolCorrDU, PolCorrDU_Unc, PolCorrDD, PolCorrDD_Unc, PolCorrUD, PolCorrUD_Unc, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax):
     """Compute 1-D slices of the four polarized cross-sections for one sample.
 
     Builds Circ/Horz/Vert/Diag sector masks, calls
-    :func:`two_dim_to_one_dim` on each polarized cross-section, then writes
+    :func:`_two_dim_to_one_dim` on each polarized cross-section, then writes
     a combined ``SliceFullPol_*.txt`` file and a four-cross-section PNG per
     slice. The ``PolCorrDegree`` flag controls the file-name tag
     (``PolCorr`` / ``He3Corr`` / ``NotCorr``).
@@ -1290,7 +1290,7 @@ def sans_full_pol_slices(YesNoShowPlots, save_path, Detector_Panels, SiMirror, S
     Q_bins : int
         Required. Q binning grid.
     QValues_All : dict
-        Required. Per-panel Q grids from :func:`q_calculation_all_detectors`.
+        Required. Per-panel Q grids from :func:`_q_calculation_all_detectors`.
     Shadow_Mask : dict[str, np.ndarray]
         Required. Per-panel shadow masks.
     PolCorrUU, PolCorrUU_Unc, PolCorrDU, PolCorrDU_Unc, PolCorrDD, PolCorrDD_Unc, PolCorrUD, PolCorrUD_Unc : dict[str, np.ndarray]
@@ -1306,7 +1306,7 @@ def sans_full_pol_slices(YesNoShowPlots, save_path, Detector_Panels, SiMirror, S
     ReturnSlices : dict
         Mapping ``slice_key -> {'PolType': str, 'UU','DU','DD','UD': dict}``
         where each cross-section dict is the output of
-        :func:`two_dim_to_one_dim`.
+        :func:`_two_dim_to_one_dim`.
     """
 
     relevant_detectors = list(Detector_Panels)
@@ -1324,11 +1324,11 @@ def sans_full_pol_slices(YesNoShowPlots, save_path, Detector_Panels, SiMirror, S
 
     PlotYesNo = 0
     BothSides = 1
-    HorzMask = sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, SectorCutAngles, BothSides)
-    VertMask = sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 90, SectorCutAngles, BothSides)
-    CircMask = sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, 180, BothSides)
-    DiagMaskA = sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 45, SectorCutAngles, BothSides)
-    DiagMaskB = sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, -45, SectorCutAngles, BothSides)
+    HorzMask = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, SectorCutAngles, BothSides)
+    VertMask = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 90, SectorCutAngles, BothSides)
+    CircMask = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, 180, BothSides)
+    DiagMaskA = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 45, SectorCutAngles, BothSides)
+    DiagMaskB = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, -45, SectorCutAngles, BothSides)
     DiagMask = {}
     for dshort in relevant_detectors:
         DiagMask[dshort] = DiagMaskA[dshort] + DiagMaskB[dshort]
@@ -1349,23 +1349,23 @@ def sans_full_pol_slices(YesNoShowPlots, save_path, Detector_Panels, SiMirror, S
             slice_key = "Diag"+str(SectorCutAngles)
             local_mask = DiagMask
 
-        UU = two_dim_to_one_dim(Detector_Panels, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, PolCorrUU, PolCorrUU_Unc, Sample, Config, PlotYesNo, AverageQRanges)
-        DU = two_dim_to_one_dim(Detector_Panels, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, PolCorrDU, PolCorrDU_Unc, Sample, Config, PlotYesNo, AverageQRanges)
-        DD = two_dim_to_one_dim(Detector_Panels, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, PolCorrDD, PolCorrDD_Unc, Sample, Config, PlotYesNo, AverageQRanges)
-        UD = two_dim_to_one_dim(Detector_Panels, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, PolCorrUD, PolCorrUD_Unc, Sample, Config, PlotYesNo, AverageQRanges)
+        UU = _two_dim_to_one_dim(Detector_Panels, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, PolCorrUU, PolCorrUU_Unc, Sample, Config, PlotYesNo, AverageQRanges)
+        DU = _two_dim_to_one_dim(Detector_Panels, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, PolCorrDU, PolCorrDU_Unc, Sample, Config, PlotYesNo, AverageQRanges)
+        DD = _two_dim_to_one_dim(Detector_Panels, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, PolCorrDD, PolCorrDD_Unc, Sample, Config, PlotYesNo, AverageQRanges)
+        UD = _two_dim_to_one_dim(Detector_Panels, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, PolCorrUD, PolCorrUD_Unc, Sample, Config, PlotYesNo, AverageQRanges)
 
         file_name = 'SliceFullPol_{samp},{cf}_{corr}{slice_key}.txt'.format(samp=Sample, cf=Config, corr=Corr, slice_key=slice_key) 
-        save_text_data_four_cross_sections(save_path, file_name, slice_key, Sample, Config, UU, DU, DD, UD)
+        _save_text_data_four_cross_sections(save_path, file_name, slice_key, Sample, Config, UU, DU, DD, UD)
         '''saves data as SliceFullPol_{samp},{cf}_{corr}{slice_key}.txt'''
 
-        plot_four_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, '{corr}'.format(corr = Corr), slice_key, Sample, Config, UU, DU, DD, UD)
+        _plot_four_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, '{corr}'.format(corr = Corr), slice_key, Sample, Config, UU, DU, DD, UD)
         '''saves data as SliceFullPol_{samp},{cf}_{corr}{slice_key}.png'''
 
         ReturnSlices[slice_key] = {'PolType' : Corr, 'UU' : UU, 'DU' : DU, 'DD' : DD, 'UD' : UD}
 
     return ReturnSlices
 
-def sans_half_pol_slices(Detector_Panels, SiMirror, Slices, SectorCutAngles, AverageQRanges, PolType, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, U, U_Unc, D, D_Unc):
+def _sans_half_pol_slices(Detector_Panels, SiMirror, Slices, SectorCutAngles, AverageQRanges, PolType, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, U, U_Unc, D, D_Unc):
     """Compute 1-D slices for half-polarized (U and D) scattering.
 
     Parameters
@@ -1401,7 +1401,7 @@ def sans_half_pol_slices(Detector_Panels, SiMirror, Slices, SectorCutAngles, Ave
     -------
     ReturnSlices : dict
         ``slice_key -> {'PolType', 'U', 'D'}`` with each cut a dict from
-        :func:`two_dim_to_one_dim`.
+        :func:`_two_dim_to_one_dim`.
     """
 
     relevant_detectors = list(Detector_Panels)
@@ -1411,11 +1411,11 @@ def sans_half_pol_slices(Detector_Panels, SiMirror, Slices, SectorCutAngles, Ave
 
     PlotYesNo = 0
     BothSides = 1
-    HorzMask = sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, SectorCutAngles, BothSides)
-    VertMask = sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 90, SectorCutAngles, BothSides)
-    CircMask = sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, 180, BothSides)
-    DiagMaskA = sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 45, SectorCutAngles, BothSides)
-    DiagMaskB = sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, -45, SectorCutAngles, BothSides)
+    HorzMask = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, SectorCutAngles, BothSides)
+    VertMask = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 90, SectorCutAngles, BothSides)
+    CircMask = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, 180, BothSides)
+    DiagMaskA = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 45, SectorCutAngles, BothSides)
+    DiagMaskB = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, -45, SectorCutAngles, BothSides)
     DiagMask = {}
     for dshort in relevant_detectors:
         DiagMask[dshort] = DiagMaskA[dshort] + DiagMaskB[dshort]
@@ -1436,14 +1436,14 @@ def sans_half_pol_slices(Detector_Panels, SiMirror, Slices, SectorCutAngles, Ave
             slice_key = "Diag"+str(SectorCutAngles)
             local_mask = DiagMask
 
-        UCut = two_dim_to_one_dim(Detector_Panels, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, U, U_Unc, Sample, Config, PlotYesNo, AverageQRanges)
-        DCut = two_dim_to_one_dim(Detector_Panels, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, D, D_Unc, Sample, Config, PlotYesNo, AverageQRanges)
+        UCut = _two_dim_to_one_dim(Detector_Panels, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, U, U_Unc, Sample, Config, PlotYesNo, AverageQRanges)
+        DCut = _two_dim_to_one_dim(Detector_Panels, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, D, D_Unc, Sample, Config, PlotYesNo, AverageQRanges)
 
         ReturnSlices[slice_key] = {'PolType' : PolType, 'U' : UCut, 'D' : DCut}
 
     return ReturnSlices
 
-def sans_unpol_slices(Detector_Panels, SiMirror, Slices, SectorCutAngles, AverageQRanges, PolType, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, Unpol, Unpol_Unc):
+def _sans_unpol_slices(Detector_Panels, SiMirror, Slices, SectorCutAngles, AverageQRanges, PolType, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, Unpol, Unpol_Unc):
     """Compute 1-D slices for unpolarized scattering.
 
     Parameters
@@ -1488,11 +1488,11 @@ def sans_unpol_slices(Detector_Panels, SiMirror, Slices, SectorCutAngles, Averag
 
     PlotYesNo = 0
     BothSides = 1
-    HorzMask = sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, SectorCutAngles, BothSides)
-    VertMask = sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 90, SectorCutAngles, BothSides)
-    CircMask = sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, 180, BothSides)
-    DiagMaskA = sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 45, SectorCutAngles, BothSides)
-    DiagMaskB = sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, -45, SectorCutAngles, BothSides)
+    HorzMask = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, SectorCutAngles, BothSides)
+    VertMask = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 90, SectorCutAngles, BothSides)
+    CircMask = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, 180, BothSides)
+    DiagMaskA = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 45, SectorCutAngles, BothSides)
+    DiagMaskB = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, -45, SectorCutAngles, BothSides)
     DiagMask = {}
     for dshort in relevant_detectors:
         DiagMask[dshort] = DiagMaskA[dshort] + DiagMaskB[dshort]
@@ -1513,18 +1513,18 @@ def sans_unpol_slices(Detector_Panels, SiMirror, Slices, SectorCutAngles, Averag
             slice_key = "Diag"+str(SectorCutAngles)
             local_mask = DiagMask
 
-        UnpolCut = two_dim_to_one_dim(Detector_Panels, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, Unpol, Unpol_Unc, Sample, Config, PlotYesNo, AverageQRanges)
+        UnpolCut = _two_dim_to_one_dim(Detector_Panels, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, Unpol, Unpol_Unc, Sample, Config, PlotYesNo, AverageQRanges)
         
         ReturnSlices[slice_key] = {'PolType' : PolType, 'Unpol' : UnpolCut}
 
     return ReturnSlices
 
-def sans_save_slices_and_results(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, He3Only_Check, Configs, Sample_Names, ScattCatalog, AllFullPolSlices, AllHalfPolSlices, AllUnpolSlices):
+def _sans_save_slices_and_results(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, He3Only_Check, Configs, Sample_Names, ScattCatalog, AllFullPolSlices, AllHalfPolSlices, AllUnpolSlices):
     """Per sample/config, finalize slices, do MT subtraction, save plots and data.
 
     Iterates over configurations and samples and calls the three processors
-    :func:`sans_process_full_pol_slices`, :func:`sans_process_half_pol_slices`,
-    and :func:`sans_process_unpol_slices`. Empty samples are also processed
+    :func:`_sans_process_full_pol_slices`, :func:`_sans_process_half_pol_slices`,
+    and :func:`_sans_process_unpol_slices`. Empty samples are also processed
     when ``AutoSubtractEmpty`` is false.
 
     Parameters
@@ -1558,7 +1558,7 @@ def sans_save_slices_and_results(StructurallyIsotropic, Slices, SectorCutAngles,
     ScattCatalog : dict
         Required. Scattering catalog.
     AllFullPolSlices, AllHalfPolSlices, AllUnpolSlices : dict
-        Required. Slice data from :func:`sans_make_slices_and_save_ascii`.
+        Required. Slice data from :func:`_sans_make_slices_and_save_ascii`.
 
     Returns
     -------
@@ -1581,18 +1581,18 @@ def sans_save_slices_and_results(StructurallyIsotropic, Slices, SectorCutAngles,
                     if Sample in ScattCatalog:                
                         if str(ScattCatalog[Sample]['Intent']).find('Sample') != -1:
                             if Sample in AllFullPolSlices[Config]:
-                                FullPolResults[Sample] = sans_process_full_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, Config, AllFullPolSlices[Config], Sample)
+                                FullPolResults[Sample] = _sans_process_full_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, Config, AllFullPolSlices[Config], Sample)
                             if Sample in AllHalfPolSlices[Config]:
-                                HalfPolResults[Sample] = sans_process_half_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllHalfPolSlices[Config], Sample)
+                                HalfPolResults[Sample] = _sans_process_half_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllHalfPolSlices[Config], Sample)
                             if Sample in AllUnpolSlices[Config]:
-                                UnpolResults[Sample] = sans_process_unpol_slices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllUnpolSlices[Config], Sample)
+                                UnpolResults[Sample] = _sans_process_unpol_slices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllUnpolSlices[Config], Sample)
                 if not AutoSubtractEmpty:
                     if 'Empty' in AllFullPolSlices[Config]:
-                        FullPolResults['Empty'] = sans_process_full_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, Config, AllFullPolSlices[Config], 'Empty')
+                        FullPolResults['Empty'] = _sans_process_full_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, Config, AllFullPolSlices[Config], 'Empty')
                     if 'Empty' in AllHalfPolSlices[Config]:
-                        HalfPolResults['Empty'] = sans_process_half_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllHalfPolSlices[Config], 'Empty')
+                        HalfPolResults['Empty'] = _sans_process_half_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllHalfPolSlices[Config], 'Empty')
                     if 'Empty' in AllUnpolSlices[Config]:
-                        UnpolResults['Empty'] = sans_process_unpol_slices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllUnpolSlices[Config], 'Empty')
+                        UnpolResults['Empty'] = _sans_process_unpol_slices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllUnpolSlices[Config], 'Empty')
 
                 AllFullPolResults[Config] = FullPolResults
                 AllHalfPolResults[Config] = HalfPolResults
@@ -1600,7 +1600,7 @@ def sans_save_slices_and_results(StructurallyIsotropic, Slices, SectorCutAngles,
         
     return AllFullPolResults, AllHalfPolResults, AllUnpolResults
 
-def match_q_pa_data_sets(A, B, Type):
+def _match_q_pa_data_sets(A, B, Type):
     """Trim two slice dicts so they share a common Q grid.
 
     Removes Q points present in one set but not the other, in place on the
@@ -1676,11 +1676,11 @@ def match_q_pa_data_sets(A, B, Type):
 
     return Horz_Data, Vert_Data
 
-def subtract_pa_data_sets(A, B, Type):
+def _subtract_pa_data_sets(A, B, Type):
     """Subtract slice dict ``B`` from ``A`` and combine uncertainties in quadrature.
 
     Assumes ``A`` and ``B`` already share a common Q grid (typically after
-    :func:`match_q_pa_data_sets`).
+    :func:`_match_q_pa_data_sets`).
 
     Parameters
     ----------
@@ -1722,7 +1722,7 @@ def subtract_pa_data_sets(A, B, Type):
     
     return C
 
-def two_dim_to_one_dim(Detector_Panels, Key, Q_min, Q_max, Q_bins, QGridPerDetector, generalmask, sectormask, PolCorr_AllDetectors, Unc_PolCorr_AllDetectors, ID, Config, PlotYesNo, AverageQRanges):
+def _two_dim_to_one_dim(Detector_Panels, Key, Q_min, Q_max, Q_bins, QGridPerDetector, generalmask, sectormask, PolCorr_AllDetectors, Unc_PolCorr_AllDetectors, ID, Config, PlotYesNo, AverageQRanges):
     """Radially bin masked 2-D intensity into a 1-D Q profile.
 
     For each panel the intensity inside ``generalmask * sectormask`` is
@@ -1743,12 +1743,12 @@ def two_dim_to_one_dim(Detector_Panels, Key, Q_min, Q_max, Q_bins, QGridPerDetec
         Required. Q-binning grid.
     QGridPerDetector : dict
         Required. Per-panel ``Q_total`` / ``Q_parl_unc`` maps (output of
-        :func:`q_calculation_all_detectors`).
+        :func:`_q_calculation_all_detectors`).
     generalmask : dict[str, np.ndarray]
         Required. Per-panel general mask (typically the shadow mask).
     sectormask : dict[str, np.ndarray]
         Required. Per-panel sector mask from
-        :func:`sector_mask_all_detectors`.
+        :func:`_sector_mask_all_detectors`.
     PolCorr_AllDetectors : dict[str, np.ndarray]
         Required. Per-panel intensities to bin.
     Unc_PolCorr_AllDetectors : dict[str, np.ndarray]
@@ -1929,7 +1929,7 @@ def two_dim_to_one_dim(Detector_Panels, Key, Q_min, Q_max, Q_bins, QGridPerDetec
     
     return Output
 
-def ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, Type, ID, Config, Data_AllDetectors, Unc_Data_AllDetectors, QGridPerDetector, GeneralMask):
+def _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, Type, ID, Config, Data_AllDetectors, Unc_Data_AllDetectors, QGridPerDetector, GeneralMask):
     """Write 2-D pixel-level (Qx, Qy, I, ...) ASCII files in SasView format.
 
     For each panel, flattens the masked (Qx, Qy, Qz, I, dI, dQparl, dQperp,
@@ -2054,7 +2054,7 @@ def ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, Type
 
     return
 
-def save_text_data(save_path, Type, Slice, Sample, Config, DataMatrix):
+def _save_text_data(save_path, Type, Slice, Sample, Config, DataMatrix):
     """Write a single-cross-section 1-D slice to ``Slice{Type}_*.txt``.
 
     Parameters
@@ -2068,7 +2068,7 @@ def save_text_data(save_path, Type, Slice, Sample, Config, DataMatrix):
     Sample, Config : str
         Required. Labels used in the file name.
     DataMatrix : dict
-        Required. Output of :func:`two_dim_to_one_dim` with keys ``'Q'``,
+        Required. Output of :func:`_two_dim_to_one_dim` with keys ``'Q'``,
         ``'I'``, ``'I_Unc'``, ``'Q_Mean'``, ``'Q_Uncertainty'``.
 
     Returns
@@ -2091,7 +2091,7 @@ def save_text_data(save_path, Type, Slice, Sample, Config, DataMatrix):
   
     return
 
-def save_text_data_unpol(save_path, Sub, Slice, Sample, Config, DataMatrix):
+def _save_text_data_unpol(save_path, Sub, Slice, Sample, Config, DataMatrix):
     """Write an unpolarized 1-D slice to ``SliceUnpol_*.txt``.
 
     Parameters
@@ -2130,7 +2130,7 @@ def save_text_data_unpol(save_path, Sub, Slice, Sample, Config, DataMatrix):
     return
 
 
-def save_text_data_four_cross_sections(save_path, Type, Slice, Sample, Config, UUMatrix, DUMatrix, DDMatrix, UDMatrix):
+def _save_text_data_four_cross_sections(save_path, Type, Slice, Sample, Config, UUMatrix, DUMatrix, DDMatrix, UDMatrix):
     """Write the four full-pol cross-sections to a single ``SliceFullPol_*.txt``.
 
     Parameters
@@ -2145,7 +2145,7 @@ def save_text_data_four_cross_sections(save_path, Type, Slice, Sample, Config, U
     Sample, Config : str
         Required. Labels used in the file name.
     UUMatrix, DUMatrix, DDMatrix, UDMatrix : dict
-        Required. Per-cross-section output of :func:`two_dim_to_one_dim`.
+        Required. Per-cross-section output of :func:`_two_dim_to_one_dim`.
         ``UUMatrix`` supplies the shared Q grid and Q metadata.
 
     Returns
@@ -2174,10 +2174,10 @@ def save_text_data_four_cross_sections(save_path, Type, Slice, Sample, Config, U
   
     return
 
-def save_text_data_four_combined_cross_sections(save_path,  Type, Slice, Sub, Sample, Config, Matrix):
+def _save_text_data_four_combined_cross_sections(save_path,  Type, Slice, Sub, Sample, Config, Matrix):
     """Write four already-combined cross-sections to ``SliceFullPol_*.txt``.
 
-    Unlike :func:`save_text_data_four_cross_sections` this expects a single
+    Unlike :func:`_save_text_data_four_cross_sections` this expects a single
     matched dict (e.g. after MT subtraction) holding all four cross-sections.
 
     Parameters
@@ -2223,7 +2223,7 @@ def save_text_data_four_combined_cross_sections(save_path,  Type, Slice, Sub, Sa
   
     return
 
-def plot_four_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, Type, Slice, Sample, Config, UU, DU, DD, UD):
+def _plot_four_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, Type, Slice, Sample, Config, UU, DU, DD, UD):
     """Save a log-log plot of the four full-pol cross-sections.
 
     Parameters
@@ -2276,10 +2276,10 @@ def plot_four_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesN
 
     return
 
-def plot_four_combined_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, Type, Slice, Sub, Sample, Config, Matrix):
+def _plot_four_combined_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, Type, Slice, Sub, Sample, Config, Matrix):
     """Save a log-log plot of four cross-sections stored in a single matched dict.
 
-    Counterpart of :func:`plot_four_cross_sections` for a dict already
+    Counterpart of :func:`_plot_four_cross_sections` for a dict already
     holding ``UU``/``DU``/``DD``/``UD`` columns (typically after MT
     subtraction).
 
@@ -2336,7 +2336,7 @@ def plot_four_combined_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRa
 
     return
 
-def get_beam_center(Instrument, input_path, filenumber, dshort, trans_max_width_pixels):
+def _get_beam_center(Instrument, input_path, filenumber, dshort, trans_max_width_pixels):
     """Find the beam-center coordinates from a transmission run.
 
     For NG7SANS, returns the centers stored in the NeXus file directly.
@@ -2426,7 +2426,7 @@ def get_beam_center(Instrument, input_path, filenumber, dshort, trans_max_width_
         f.close()
     return middle_bc_x, middle_bc_y
 
-def all_sans_pol_corr_scatt_files(Detector_Panels, Instrument, UsePolCorr, input_path, He3CorrectionType, BestPSM, Minimum_PSM, dimXX, dimYY, Sample, Config, Scatt, Trans, Pol_Trans, UUScaledData, DUScaledData, DDScaledData, UDScaledData, UUScaledData_Unc, DUScaledData_Unc, DDScaledData_Unc, UDScaledData_Unc, HE3_Cell_Summary):
+def _all_sans_pol_corr_scatt_files(Detector_Panels, Instrument, UsePolCorr, input_path, He3CorrectionType, BestPSM, Minimum_PSM, dimXX, dimYY, Sample, Config, Scatt, Trans, Pol_Trans, UUScaledData, DUScaledData, DDScaledData, UDScaledData, UUScaledData_Unc, DUScaledData_Unc, DDScaledData_Unc, UDScaledData_Unc, HE3_Cell_Summary):
     """Apply the full-polarization correction (or He3-only correction) per panel.
 
     Builds the time-averaged 4x4 polarization-efficiency matrix from each
@@ -2458,7 +2458,7 @@ def all_sans_pol_corr_scatt_files(Detector_Panels, Instrument, UsePolCorr, input
         Required. Floor on the measured supermirror polarization.
     dimXX, dimYY : dict[str, int]
         Required. Per-panel detector dimensions (output of
-        :func:`q_calculation_all_detectors`).
+        :func:`_q_calculation_all_detectors`).
     Sample, Config : str
         Required. Sample and configuration labels.
     Scatt : dict
@@ -2572,7 +2572,7 @@ def all_sans_pol_corr_scatt_files(Detector_Panels, Instrument, UsePolCorr, input
                 f = _sans_get_by_filenumber(Instrument, input_path, filenumber)
                 if f is not None:
                     entry = Scatt[Sample]['Config(s)'][Config][type_time][filenumber_counter]
-                    NP, UT, T_MAJ, T_MIN = he3_pol_at_given_time(entry, HE3_Cell_Summary)
+                    NP, UT, T_MAJ, T_MIN = _he3_pol_at_given_time(entry, HE3_Cell_Summary)
                     C = NP
                     S = BestPSM
                     if PSM < Minimum_PSM:
@@ -2683,7 +2683,7 @@ def all_sans_pol_corr_scatt_files(Detector_Panels, Instrument, UsePolCorr, input
 
     return Have_FullPol, PolCorr_ALLCS, PolCorr_UU, PolCorr_DU, PolCorr_DD, PolCorr_UD, PolCorr_ALLCS_Unc, PolCorr_UU_Unc, PolCorr_DU_Unc, PolCorr_DD_Unc, PolCorr_UD_Unc
 
-def sans_process_full_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, Config, PolSampleSlices, Sample):
+def _sans_process_full_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, Config, PolSampleSlices, Sample):
     """Combine four full-pol cross-section slices into structural/magnetic results.
 
     For each sector slice the four cross-sections are optionally MT-subtracted,
@@ -2770,11 +2770,11 @@ def sans_process_full_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles,
                     elif entry == 'DU' or entry == 'DD'or entry == 'UD':
                         MT_Cuts[sector_cut][entry] = PolSampleSlices['Empty'][slice_details][entry]['I']
                         MT_Cuts[sector_cut][entry+"_Unc"] = PolSampleSlices['Empty'][slice_details][entry]['I_Unc']
-                DataMatch, MTMatch = match_q_pa_data_sets(Data_Cuts[sector_cut], MT_Cuts[sector_cut], 2)
-                Data_Cuts[sector_cut] = subtract_pa_data_sets(DataMatch, MTMatch, 2)
+                DataMatch, MTMatch = _match_q_pa_data_sets(Data_Cuts[sector_cut], MT_Cuts[sector_cut], 2)
+                Data_Cuts[sector_cut] = _subtract_pa_data_sets(DataMatch, MTMatch, 2)
 
-        save_text_data_four_combined_cross_sections(save_path,  '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Data_Cuts[sector_cut])
-        plot_four_combined_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Data_Cuts[sector_cut])
+        _save_text_data_four_combined_cross_sections(save_path,  '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Data_Cuts[sector_cut])
+        _plot_four_combined_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Data_Cuts[sector_cut])
 
     AngleA = (45 - SectorCutAngles)*3.141593/180.0
     AngleB = (45 + SectorCutAngles)*3.141593/180.0
@@ -2789,20 +2789,20 @@ def sans_process_full_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles,
     
 
     if "Horz" in Slices and "Vert" in Slices:
-        HorzMatch, VertMatch = match_q_pa_data_sets(Data_Cuts["Horz"], Data_Cuts["Vert"], 2)
+        HorzMatch, VertMatch = _match_q_pa_data_sets(Data_Cuts["Horz"], Data_Cuts["Vert"], 2)
         for entry in Data_Cuts["Horz"]:
             Data_Cuts["Horz"][entry] = HorzMatch[entry]
         for entry in Data_Cuts["Vert"]:
             Data_Cuts["Vert"][entry] = VertMatch[entry]
 
         if "Diag" in Slices:
-            DiagMatch, VertMatch = match_q_pa_data_sets(Data_Cuts["Diag"], Data_Cuts["Vert"], 2)
+            DiagMatch, VertMatch = _match_q_pa_data_sets(Data_Cuts["Diag"], Data_Cuts["Vert"], 2)
             for entry in Data_Cuts["Diag"]:
                 Data_Cuts["Diag"][entry] = DiagMatch[entry]
             for entry in Data_Cuts["Vert"]:
                 Data_Cuts["Vert"][entry] = VertMatch[entry]
 
-            DiagMatch, HorzMatch = match_q_pa_data_sets(Data_Cuts["Diag"], Data_Cuts["Horz"], 2)
+            DiagMatch, HorzMatch = _match_q_pa_data_sets(Data_Cuts["Diag"], Data_Cuts["Horz"], 2)
             for entry in Data_Cuts["Diag"]:
                 Data_Cuts["Diag"][entry] = DiagMatch[entry]
             for entry in Data_Cuts["Horz"]:
@@ -2945,7 +2945,7 @@ def sans_process_full_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles,
     
     return Results
 
-def sans_process_half_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, PolSampleSlices, Sample):
+def _sans_process_half_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, PolSampleSlices, Sample):
     """Combine half-pol (U/D) slices into structural and magnetic results.
 
     For each requested slice, U and D are optionally MT-subtracted (with
@@ -3029,12 +3029,12 @@ def sans_process_half_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles,
                 MT['Shadow'] = PolSampleSlices['Empty'][slice_details]['U']['Shadow']
                 MTCirc = MT
 
-                CircMatch, MTMatch = match_q_pa_data_sets(Circ_Data, MT, 1)
-                Circ_Data = subtract_pa_data_sets(CircMatch, MTMatch, 1)
+                CircMatch, MTMatch = _match_q_pa_data_sets(Circ_Data, MT, 1)
+                Circ_Data = _subtract_pa_data_sets(CircMatch, MTMatch, 1)
 
-        #save_text_data_four_combined_cross_sections(save_path,  '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Circ_Data)
+        #_save_text_data_four_combined_cross_sections(save_path,  '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Circ_Data)
         '''saves data as SliceFullPol_{samp},{cf}_{corr}{slice_key}.txt'''
-        #plot_four_combined_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Circ_Data)
+        #_plot_four_combined_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Circ_Data)
         '''saves data as SliceFullPol_{samp},{cf}_{corr}{slice_key}.png'''
         Circ_Sum = (Circ_Data['U'] + Circ_Data['D'])/2.0
         Circ_Sum_Unc = (np.sqrt(np.power(Circ_Data['U_Unc'],2) + np.power(Circ_Data['D_Unc'],2)))/2.0
@@ -3065,14 +3065,14 @@ def sans_process_half_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles,
                 MT['Shadow'] = PolSampleSlices['Empty'][slice_details]['U']['Shadow']
 
                 if UseMTCirc == 1 and HaveMTCirc == 1:
-                    HorzMatch, MTMatch = match_q_pa_data_sets(Horz_Data, MTCirc, 1)
+                    HorzMatch, MTMatch = _match_q_pa_data_sets(Horz_Data, MTCirc, 1)
                 else:
-                    HorzMatch, MTMatch = match_q_pa_data_sets(Horz_Data, MT, 1)
-                Horz_Data = subtract_pa_data_sets(HorzMatch, MTMatch, 1)
+                    HorzMatch, MTMatch = _match_q_pa_data_sets(Horz_Data, MT, 1)
+                Horz_Data = _subtract_pa_data_sets(HorzMatch, MTMatch, 1)
 
-        #save_text_data_four_combined_cross_sections(save_path,  '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Horz_Data)
+        #_save_text_data_four_combined_cross_sections(save_path,  '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Horz_Data)
         '''saves data as SliceFullPol_{samp},{cf}_{corr}{slice_key}.txt'''
-        #plot_four_combined_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Horz_Data)
+        #_plot_four_combined_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Horz_Data)
         '''saves data as SliceFullPol_{samp},{cf}_{corr}{slice_key}.png'''
 
     if "Vert" in Slices:
@@ -3101,19 +3101,19 @@ def sans_process_half_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles,
                 MT['Shadow'] = PolSampleSlices['Empty'][slice_details]['U']['Shadow']
 
                 if UseMTCirc == 1 and HaveMTCirc == 1:
-                    VertMatch, MTMatch = match_q_pa_data_sets(Vert_Data, MTCirc, 1)
+                    VertMatch, MTMatch = _match_q_pa_data_sets(Vert_Data, MTCirc, 1)
                 else:
-                    VertMatch, MTMatch = match_q_pa_data_sets(Vert_Data, MT, 1)
-                Vert_Data = subtract_pa_data_sets(VertMatch, MTMatch, 1)
+                    VertMatch, MTMatch = _match_q_pa_data_sets(Vert_Data, MT, 1)
+                Vert_Data = _subtract_pa_data_sets(VertMatch, MTMatch, 1)
 
-        #save_text_data_four_combined_cross_sections(save_path,  '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Vert_Data)
+        #_save_text_data_four_combined_cross_sections(save_path,  '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Vert_Data)
         '''saves data as SliceFullPol_{samp},{cf}_{corr}{slice_key}.txt'''
-        #plot_four_combined_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Vert_Data)
+        #_plot_four_combined_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, '{corr}'.format(corr = PolType), slice_details, Sub, Sample, Config, Vert_Data)
         '''saves data as SliceFullPol_{samp},{cf}_{corr}{slice_key}.png'''
 
     if HaveHorzData == 1 and HaveVertData == 1:
 
-        HorzMatch, VertMatch = match_q_pa_data_sets(Horz_Data, Vert_Data, 1)
+        HorzMatch, VertMatch = _match_q_pa_data_sets(Horz_Data, Vert_Data, 1)
         for entry in Horz_Data:
             Horz_Data[entry] = HorzMatch[entry]
         for entry in Vert_Data:
@@ -3221,7 +3221,7 @@ def sans_process_half_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles,
     
     return Results
 
-def sans_process_unpol_slices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, PolSampleSlices, Sample):
+def _sans_process_unpol_slices(Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, PolSampleSlices, Sample):
     """Combine unpolarized slices and save structural / M_Parl_Sub results.
 
     For each requested slice, applies optional empty-cell subtraction
@@ -3301,10 +3301,10 @@ def sans_process_unpol_slices(Slices, SectorCutAngles, save_path, YesNoShowPlots
                 MT['Shadow'] = PolSampleSlices['Empty'][slice_details]['Unpol']['Shadow']
                 MTCirc = MT
 
-                CircMatch, MTMatch = match_q_pa_data_sets(Circ_Data, MT, 0)
-                Circ_Data = subtract_pa_data_sets(CircMatch, MTMatch, 0)
+                CircMatch, MTMatch = _match_q_pa_data_sets(Circ_Data, MT, 0)
+                Circ_Data = _subtract_pa_data_sets(CircMatch, MTMatch, 0)
 
-        save_text_data_unpol(save_path, Sub, slice_details, Sample, Config, Circ_Data)
+        _save_text_data_unpol(save_path, Sub, slice_details, Sample, Config, Circ_Data)
         
         Circ_Sum = Circ_Data['Unpol']
         Circ_Sum_Unc = Circ_Data['Unpol_Unc']
@@ -3321,7 +3321,7 @@ def sans_process_unpol_slices(Slices, SectorCutAngles, save_path, YesNoShowPlots
         Horz_Data['Shadow'] = PolSampleSlices[Sample][slice_details]['Unpol']['Shadow']
 
         #if "Circ" in Slices:#Fix for Q
-            #Horz_Data, CircMatchHorz_Data = match_q_pa_data_sets(Horz_Data, Circ_Data, 0)
+            #Horz_Data, CircMatchHorz_Data = _match_q_pa_data_sets(Horz_Data, Circ_Data, 0)
             #Horz_Data['Q_Unc'] = CircMatchHorz_Data['Q_Unc']
             #Horz_Data['Q_Mean'] = CircMatchHorz_Data['Q_Mean']
 
@@ -3336,12 +3336,12 @@ def sans_process_unpol_slices(Slices, SectorCutAngles, save_path, YesNoShowPlots
                 MT['Shadow'] = PolSampleSlices['Empty'][slice_details]['Unpol']['Shadow']
 
                 if UseMTCirc == 1 and HaveMTCirc == 1:
-                    HorzMatch, MTMatch = match_q_pa_data_sets(Horz_Data, MTCirc, 0)
+                    HorzMatch, MTMatch = _match_q_pa_data_sets(Horz_Data, MTCirc, 0)
                 else:
-                    HorzMatch, MTMatch = match_q_pa_data_sets(Horz_Data, MT, 0)
-                Horz_Data = subtract_pa_data_sets(HorzMatch, MTMatch, 0)
+                    HorzMatch, MTMatch = _match_q_pa_data_sets(Horz_Data, MT, 0)
+                Horz_Data = _subtract_pa_data_sets(HorzMatch, MTMatch, 0)
 
-        save_text_data_unpol(save_path, Sub, slice_details, Sample, Config, Horz_Data)
+        _save_text_data_unpol(save_path, Sub, slice_details, Sample, Config, Horz_Data)
 
     if "Diag" in Slices:
         slice_details = "Diag"+str(SectorCutAngles)
@@ -3354,7 +3354,7 @@ def sans_process_unpol_slices(Slices, SectorCutAngles, save_path, YesNoShowPlots
         Diag_Data['Shadow'] = PolSampleSlices[Sample][slice_details]['Unpol']['Shadow']
 
         #if "Circ" in Slices:#Fix for Q
-            #Diag_Data, CircMatchDiag_Data = match_q_pa_data_sets(Diag_Data, Circ_Data, 0)
+            #Diag_Data, CircMatchDiag_Data = _match_q_pa_data_sets(Diag_Data, Circ_Data, 0)
             #Diag_Data['Q_Unc'] = CircMatchDiag_Data['Q_Unc']
             #Diag_Data['Q_Mean'] = CircMatchDiag_Data['Q_Mean']
 
@@ -3370,7 +3370,7 @@ def sans_process_unpol_slices(Slices, SectorCutAngles, save_path, YesNoShowPlots
         Vert_Data['Shadow'] = PolSampleSlices[Sample][slice_details]['Unpol']['Shadow']
 
         #if "Circ" in Slices:#Fix for Q
-            #Vert_Data, CircMatchVert_Data = match_q_pa_data_sets(Vert_Data, Circ_Data, 0)
+            #Vert_Data, CircMatchVert_Data = _match_q_pa_data_sets(Vert_Data, Circ_Data, 0)
             #Vert_Data['Q_Unc'] = CircMatchVert_Data['Q_Unc']
             #Vert_Data['Q_Mean'] = CircMatchVert_Data['Q_Mean']
 
@@ -3385,16 +3385,16 @@ def sans_process_unpol_slices(Slices, SectorCutAngles, save_path, YesNoShowPlots
                 MT['Shadow'] = PolSampleSlices['Empty'][slice_details]['Unpol']['Shadow']
 
                 if UseMTCirc == 1 and HaveMTCirc == 1:
-                    VertMatch, MTMatch = match_q_pa_data_sets(Vert_Data, MTCirc, 0)
+                    VertMatch, MTMatch = _match_q_pa_data_sets(Vert_Data, MTCirc, 0)
                 else:
-                    VertMatch, MTMatch = match_q_pa_data_sets(Vert_Data, MT, 0)
-                Vert_Data = subtract_pa_data_sets(VertMatch, MTMatch, 0)
+                    VertMatch, MTMatch = _match_q_pa_data_sets(Vert_Data, MT, 0)
+                Vert_Data = _subtract_pa_data_sets(VertMatch, MTMatch, 0)
 
-        save_text_data_unpol(save_path, Sub, slice_details, Sample, Config, Vert_Data)
+        _save_text_data_unpol(save_path, Sub, slice_details, Sample, Config, Vert_Data)
 
     if HaveHorzData == 1 and HaveVertData == 1:
 
-        HorzMatch, VertMatch = match_q_pa_data_sets(Horz_Data, Vert_Data, 0)
+        HorzMatch, VertMatch = _match_q_pa_data_sets(Horz_Data, Vert_Data, 0)
         for entry in Horz_Data:
             Horz_Data[entry] = HorzMatch[entry]
         for entry in Vert_Data:
@@ -3478,7 +3478,7 @@ def sans_process_unpol_slices(Slices, SectorCutAngles, save_path, YesNoShowPlots
     
     return Results
 
-def annular_average(Detector_Panels, Instrument, save_path, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_total, GeneralMask, ScaledData, ScaledData_Unc):
+def _annular_average(Detector_Panels, Instrument, save_path, Sample, Config, InPlaneAngleMap, Q_min, Q_max, Q_total, GeneralMask, ScaledData, ScaledData_Unc):
     """Plot intensity vs. azimuthal angle, averaged over an annular Q band.
 
     Steps through 72 sectors covering [0, 360) degrees, computes the
@@ -3534,7 +3534,7 @@ def annular_average(Detector_Panels, Instrument, save_path, Sample, Config, InPl
     PlotYesNo = 0
     for x in range(0, 72):
         degree = x*5
-        Sector_Mask = sector_mask_all_detectors(Detector_Panels, 'Unknown', Config, InPlaneAngleMap, degree, 2.5, BothSides)
+        Sector_Mask = _sector_mask_all_detectors(Detector_Panels, 'Unknown', Config, InPlaneAngleMap, degree, 2.5, BothSides)
 
         summed_pixels = 0
         summed_intensity = 0
@@ -3570,7 +3570,7 @@ def annular_average(Detector_Panels, Instrument, save_path, Sample, Config, InPl
     return
 
     
-def sans_categorize_samples_and_bases(He3Only_Check, Configs, Sample_Bases, Sample_Names, ScattCatalog, AllFullPolSlices,AllHalfPolSlices, AllUnpolSlices):
+def _sans_categorize_samples_and_bases(He3Only_Check, Configs, Sample_Bases, Sample_Names, ScattCatalog, AllFullPolSlices,AllHalfPolSlices, AllUnpolSlices):
     """Group samples by base name and polarization mode for comparison plots.
 
     For each configuration, builds three ``{base_name -> [samples]}`` maps
@@ -3649,10 +3649,10 @@ def sans_categorize_samples_and_bases(He3Only_Check, Configs, Sample_Bases, Samp
 
     return All_FullPol_BaseToSampleMap, All_HalfPol_BaseToSampleMap, All_Unpol_BaseToSampleMap
 
-def sans_save_comparative_plots(Slices, ScattCatalog, save_path, FullPol_BaseToSampleMap, HalfPol_BaseToSampleMap, Unpol_BaseToSampleMap, AllFullPolSlices, AllHalfPolSlices, AllUnpolSlices, AllFullPolResults, AllHalfPolResults, AllUnpolResults, Configs, He3Only_Check, CompareUnpolCirc, CompareHalfPolSumCirc, CompareFullPolSumCirc, CompareFullPolStruc, CompareFullPolMagnetism):
+def _sans_save_comparative_plots(Slices, ScattCatalog, save_path, FullPol_BaseToSampleMap, HalfPol_BaseToSampleMap, Unpol_BaseToSampleMap, AllFullPolSlices, AllHalfPolSlices, AllUnpolSlices, AllFullPolResults, AllHalfPolResults, AllUnpolResults, Configs, He3Only_Check, CompareUnpolCirc, CompareHalfPolSumCirc, CompareFullPolSumCirc, CompareFullPolStruc, CompareFullPolMagnetism):
     """Emit per-base comparison plots/text across samples sharing a base name.
 
-    Dispatches several calls into :func:`sans_comparison_plots_and_text`
+    Dispatches several calls into :func:`_sans_comparison_plots_and_text`
     covering full-pol circular sum, full-pol horizontal NSF sum, half-pol
     circular sum, unpol circular, and full-pol M_Perp / M_Parl_NSF, gated
     on the corresponding ``Compare*`` toggles.
@@ -3667,7 +3667,7 @@ def sans_save_comparative_plots(Slices, ScattCatalog, save_path, FullPol_BaseToS
         Required. Output directory.
     FullPol_BaseToSampleMap, HalfPol_BaseToSampleMap, Unpol_BaseToSampleMap : dict
         Required. ``Config -> Base -> [Sample, ...]`` maps from
-        :func:`sans_categorize_samples_and_bases`.
+        :func:`_sans_categorize_samples_and_bases`.
     AllFullPolSlices, AllHalfPolSlices, AllUnpolSlices : dict
         Required. ``Config -> Sample -> slices`` mappings.
     AllFullPolResults, AllHalfPolResults, AllUnpolResults : dict
@@ -3700,7 +3700,7 @@ def sans_save_comparative_plots(Slices, ScattCatalog, save_path, FullPol_BaseToS
                     QName = 'QCirc'
                     IName = 'CircSum'
                     UncName = 'CircSum_Unc'
-                    sans_comparison_plots_and_text(save_path, Slices, ScattCatalog, Config, CompareVariable, CutVariable, FullCutName, BaseMap, SampleSlices, ResultsArray, QName, IName, UncName)
+                    _sans_comparison_plots_and_text(save_path, Slices, ScattCatalog, Config, CompareVariable, CutVariable, FullCutName, BaseMap, SampleSlices, ResultsArray, QName, IName, UncName)
 
                 CompareVariable = CompareFullPolStruc
                 CutVariable = 'Horz'
@@ -3712,7 +3712,7 @@ def sans_save_comparative_plots(Slices, ScattCatalog, save_path, FullPol_BaseToS
                     QName = 'QHorz'
                     IName = 'HorzNSFSum'
                     UncName = 'HorzNSFSum_Unc'
-                    sans_comparison_plots_and_text(save_path, Slices, ScattCatalog, Config, CompareVariable, CutVariable, FullCutName, BaseMap, SampleSlices, ResultsArray, QName, IName, UncName)
+                    _sans_comparison_plots_and_text(save_path, Slices, ScattCatalog, Config, CompareVariable, CutVariable, FullCutName, BaseMap, SampleSlices, ResultsArray, QName, IName, UncName)
 
 
                 CompareVariable = CompareHalfPolSumCirc
@@ -3725,7 +3725,7 @@ def sans_save_comparative_plots(Slices, ScattCatalog, save_path, FullPol_BaseToS
                     QName = 'QCirc'
                     IName = 'CircSum'
                     UncName = 'CircSum_Unc'
-                    sans_comparison_plots_and_text(save_path, Slices, ScattCatalog, Config, CompareVariable, CutVariable, FullCutName, BaseMap, SampleSlices, ResultsArray, QName, IName, UncName)
+                    _sans_comparison_plots_and_text(save_path, Slices, ScattCatalog, Config, CompareVariable, CutVariable, FullCutName, BaseMap, SampleSlices, ResultsArray, QName, IName, UncName)
 
 
                 CompareVariable = CompareUnpolCirc
@@ -3738,7 +3738,7 @@ def sans_save_comparative_plots(Slices, ScattCatalog, save_path, FullPol_BaseToS
                     QName = 'QCirc'
                     IName = 'CircSum'
                     UncName = 'CircSum_Unc'
-                    sans_comparison_plots_and_text(save_path, Slices, ScattCatalog, Config, CompareVariable, CutVariable, FullCutName, BaseMap, SampleSlices, ResultsArray, QName, IName, UncName)
+                    _sans_comparison_plots_and_text(save_path, Slices, ScattCatalog, Config, CompareVariable, CutVariable, FullCutName, BaseMap, SampleSlices, ResultsArray, QName, IName, UncName)
 
                 CompareVariable = CompareFullPolMagnetism
                 CutVariable = 'Horz'
@@ -3750,7 +3750,7 @@ def sans_save_comparative_plots(Slices, ScattCatalog, save_path, FullPol_BaseToS
                     QName = 'QHorz'
                     IName = 'M_Perp'
                     UncName = 'M_Perp_Unc'
-                    sans_comparison_plots_and_text(save_path, Slices, ScattCatalog, Config, CompareVariable, CutVariable, FullCutName, BaseMap, SampleSlices, ResultsArray, QName, IName, UncName)
+                    _sans_comparison_plots_and_text(save_path, Slices, ScattCatalog, Config, CompareVariable, CutVariable, FullCutName, BaseMap, SampleSlices, ResultsArray, QName, IName, UncName)
               
                 CompareVariable = CompareFullPolMagnetism
                 CutVariable = 'Horz'
@@ -3762,11 +3762,11 @@ def sans_save_comparative_plots(Slices, ScattCatalog, save_path, FullPol_BaseToS
                     QName = 'QHorz'
                     IName = 'M_Parl_NSF'
                     UncName = 'M_Parl_NSF_Unc'
-                    sans_comparison_plots_and_text(save_path, Slices, ScattCatalog, Config, CompareVariable, CutVariable, FullCutName, BaseMap, SampleSlices, ResultsArray, QName, IName, UncName)
+                    _sans_comparison_plots_and_text(save_path, Slices, ScattCatalog, Config, CompareVariable, CutVariable, FullCutName, BaseMap, SampleSlices, ResultsArray, QName, IName, UncName)
                     
     return
 
-def sans_comparison_plots_and_text(save_path, Slices, ScattCatalog, Config, CompareVariable, CutVariable, FullCutName, BaseMap, SampleSlices, ResultsArray, QName, IName, UncName):
+def _sans_comparison_plots_and_text(save_path, Slices, ScattCatalog, Config, CompareVariable, CutVariable, FullCutName, BaseMap, SampleSlices, ResultsArray, QName, IName, UncName):
     """Overlay one quantity for all samples sharing a base name, save PNG + TXT.
 
     For each base with at least two qualifying samples, this loops over
@@ -3932,10 +3932,10 @@ def polarization_correction_pipeline(
     ConvertHighResToSubset = True):
     """Run the end-to-end polarization reduction pipeline.
 
-    Composes :func:`sans_make_slices_and_save_ascii`,
-    :func:`sans_save_slices_and_results`,
-    :func:`sans_categorize_samples_and_bases`, and
-    :func:`sans_save_comparative_plots` to take raw catalogs through
+    Composes :func:`_sans_make_slices_and_save_ascii`,
+    :func:`_sans_save_slices_and_results`,
+    :func:`_sans_categorize_samples_and_bases`, and
+    :func:`_sans_save_comparative_plots` to take raw catalogs through
     absolute scaling, polarization correction, 1-D slicing, optional MT
     subtraction, and cross-sample comparison plots.
 
@@ -4041,7 +4041,7 @@ def polarization_correction_pipeline(
     #This is where the polarization correction is applied,
     # and where the final reduced slices are made and saved as ASCII files for plotting in 
     # Origin or other software and for reading into SasView.
-    (AllFullPolSlices, AllHalfPolSlices, AllUnpolSlices) = sans_make_slices_and_save_ascii(
+    (AllFullPolSlices, AllHalfPolSlices, AllUnpolSlices) = _sans_make_slices_and_save_ascii(
         YesNoShowPlots = YesNoShowPlots,
         Detector_Panels = Detector_Panels, 
         Instrument = Instrument, 
@@ -4090,7 +4090,7 @@ def polarization_correction_pipeline(
     #This is where the slices and completed and saved.
     (AllFullPolResults, 
     AllHalfPolResults, 
-    AllUnpolResults) = sans_save_slices_and_results(
+    AllUnpolResults) = _sans_save_slices_and_results(
         StructurallyIsotropic = StructurallyIsotropic,
         Slices = Slices, 
         SectorCutAngles = SectorCutAngles, 
@@ -4116,7 +4116,7 @@ def polarization_correction_pipeline(
     #Categorize samples and bases for comparisons.
     (FullPol_BaseToSampleMap, 
     HalfPol_BaseToSampleMap, 
-    Unpol_BaseToSampleMap) = sans_categorize_samples_and_bases(He3Only_Check, 
+    Unpol_BaseToSampleMap) = _sans_categorize_samples_and_bases(He3Only_Check, 
                                     Configs = Configs, 
                                     Sample_Bases = Sample_Bases, 
                                     Sample_Names = Sample_Names, 
@@ -4126,7 +4126,7 @@ def polarization_correction_pipeline(
                                     AllUnpolSlices = AllUnpolSlices)
 
     #Create comparative plots of the categorized samples.
-    sans_save_comparative_plots(Slices = Slices,
+    _sans_save_comparative_plots(Slices = Slices,
                                ScattCatalog = ScattCatalog,
                                save_path = save_path,
                                FullPol_BaseToSampleMap = FullPol_BaseToSampleMap, 
