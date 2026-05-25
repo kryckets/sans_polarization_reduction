@@ -42,7 +42,7 @@ def _sans_instrument_selection(Instrument = 'VSANS'):
 
     return Detector_Panels, TransPanel, Slices
 
-def _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber):
+def _sans_get_by_filenumber(Instrument, input_path, filenumber):
     """Open the NeXus file for ``filenumber`` and return an h5py handle.
 
     Returns ``None`` if the file does not exist. The caller is responsible
@@ -50,8 +50,6 @@ def _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
 
     Parameters
     ----------
-    Detector_Panels : Iterable[str]
-        Required. Short panel names (kept for API parity; not used here).
     Instrument : str
         Required. ``'VSANS'`` or ``'NG7SANS'``; selects the file extension
         (``.nxs.ngv`` vs ``.nxs.ng7``).
@@ -75,7 +73,7 @@ def _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
         return None
 
 
-def _sans_sample_base_name_descrip(Detector_Panels, Instrument, SampleDescriptionKeywordsToExclude, input_path, filenumber):
+def _sans_sample_base_name_descrip(Instrument, SampleDescriptionKeywordsToExclude, input_path, filenumber):
     """Derive sample names and metadata from the NeXus file description string.
 
     Reads the raw sample description, strips out polarization tags
@@ -86,8 +84,6 @@ def _sans_sample_base_name_descrip(Detector_Panels, Instrument, SampleDescriptio
 
     Parameters
     ----------
-    Detector_Panels : Iterable[str]
-        Required. Forwarded to :func:`_sans_get_by_filenumber`.
     Instrument : str
         Required. ``'VSANS'`` or ``'NG7SANS'``.
     SampleDescriptionKeywordsToExclude : Iterable[str]
@@ -117,7 +113,7 @@ def _sans_sample_base_name_descrip(Detector_Panels, Instrument, SampleDescriptio
     record_temp = 0
     record_adam4021 = 0
   
-    f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
+    f = _sans_get_by_filenumber(Instrument, input_path, filenumber)
     if f is not None:
         Descrip = 'Instrument not assigned'
         if 'VSANS' in Instrument:
@@ -185,7 +181,7 @@ def _sans_sample_base_name_descrip(Detector_Panels, Instrument, SampleDescriptio
 
     return Sample_Base, Sample_Name, Descrip, Listed_Config, Desired_Temp, Voltage
 
-def _sans_purpose_intent_polarization_solenoid(Detector_Panels, Instrument, UsePolCorr, input_path, filenumber):
+def _sans_purpose_intent_polarization_solenoid(Instrument, UsePolCorr, input_path, filenumber):
     """Classify a run by purpose, intent, polarization state, and solenoid state.
 
     For VSANS, reads dedicated DAS log entries; for NG7SANS, falls back to
@@ -198,8 +194,6 @@ def _sans_purpose_intent_polarization_solenoid(Detector_Panels, Instrument, UseP
 
     Parameters
     ----------
-    Detector_Panels : Iterable[str]
-        Required. Forwarded to :func:`_sans_get_by_filenumber`.
     Instrument : str
         Required. ``'VSANS'`` or ``'NG7SANS'``.
     UsePolCorr : bool or int
@@ -237,7 +231,7 @@ def _sans_purpose_intent_polarization_solenoid(Detector_Panels, Instrument, UseP
     BackPolDirection = 'UNKNOWN'
     SolenoidPosition = 'UNKNOWN'
     PolarizationState = 'UNKNOWN'  
-    f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
+    f = _sans_get_by_filenumber(Instrument, input_path, filenumber)
     if f is not None:
         if 'VSANS' in Instrument:
             SiMirror = str(f['entry/DAS_logs/siMirror/siMirror'][()]) #SCATTERING, TRANSMISSION, HE3
@@ -311,7 +305,7 @@ def _sans_purpose_intent_polarization_solenoid(Detector_Panels, Instrument, UseP
     return SiMirror, Purpose, Intent, PolarizationState, FrontPolDirection, BackPolDirection, SolenoidPosition
 
 
-def _sans_config_id(Detector_Panels, Instrument, input_path, filenumber):
+def _sans_config_id(Instrument, input_path, filenumber):
     """Build a short configuration identifier from instrument geometry.
 
     For VSANS, encodes guides, front/middle carriage distances and
@@ -322,8 +316,6 @@ def _sans_config_id(Detector_Panels, Instrument, input_path, filenumber):
 
     Parameters
     ----------
-    Detector_Panels : Iterable[str]
-        Required. Forwarded to :func:`_sans_get_by_filenumber`.
     Instrument : str
         Required. ``'VSANS'`` or ``'NG7SANS'``.
     input_path : str
@@ -339,7 +331,7 @@ def _sans_config_id(Detector_Panels, Instrument, input_path, filenumber):
     """
 
     Configuration_ID = 'UNKNOWN'
-    f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
+    f = _sans_get_by_filenumber(Instrument, input_path, filenumber)
     if f is not None:
         if np.isfinite(f['entry/DAS_logs/wavelength/wavelength'][0]):
             WV = str(f['entry/DAS_logs/wavelength/wavelength'][0])
@@ -363,7 +355,7 @@ def _sans_config_id(Detector_Panels, Instrument, input_path, filenumber):
 
     return Configuration_ID
 
-def _sans_sort_data_automatic(Detector_Panels, input_path, Instrument='VSANS', UsePolCorr=True, SampleDescriptionKeywordsToExclude=None, TransPanel=None, YesNoManualHe3Entry=False, New_HE3_Files=None, MuValues=None, TeValues=None, Excluded_Filenumbers=None, Min_Filenumber=0, Max_Filenumber=1000000, Min_Scatt_Filenumber=0, Max_Scatt_Filenumber=1000000, Min_Trans_Filenumber=0, Max_Trans_Filenumber=1000000, ReAssignBlockBeamIntent=None, ReAssignEmptyIntent=None, ReAssignOpenIntent=None, ReAssignSampleIntent=None, YesNoRenameEmpties=True):
+def _sans_sort_data_automatic(input_path, Instrument='VSANS', UsePolCorr=True, SampleDescriptionKeywordsToExclude=None, TransPanel=None, YesNoManualHe3Entry=False, New_HE3_Files=None, MuValues=None, TeValues=None, Excluded_Filenumbers=None, Min_Filenumber=0, Max_Filenumber=1000000, Min_Scatt_Filenumber=0, Max_Scatt_Filenumber=1000000, Min_Trans_Filenumber=0, Max_Trans_Filenumber=1000000, ReAssignBlockBeamIntent=None, ReAssignEmptyIntent=None, ReAssignOpenIntent=None, ReAssignSampleIntent=None, YesNoRenameEmpties=True):
     """Walk ``input_path`` and build catalogs of every relevant SANS run.
 
     For each file in range, classifies it via :func:`_sans_config_id` and
@@ -373,8 +365,6 @@ def _sans_sort_data_automatic(Detector_Panels, input_path, Instrument='VSANS', U
 
     Parameters
     ----------
-    Detector_Panels : Iterable[str]
-        Required. Short panel names for the instrument.
     input_path : str
         Required. Directory containing raw NeXus files.
     Instrument : str, optional
@@ -490,10 +480,10 @@ def _sans_sort_data_automatic(Detector_Panels, input_path, Instrument='VSANS', U
             if filenumber >= Min_Filenumber and filenumber <= Max_Filenumber and filenumber not in Excluded_Filenumbers:
                 if start_number == 0:
                     start_number = filenumber
-                f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
+                f = _sans_get_by_filenumber(Instrument, input_path, filenumber)
                 if f is not None:
-                    Sample_Base, Sample_Name, Descrip, ListedConfig, Temp, Voltage = _sans_sample_base_name_descrip(Detector_Panels, Instrument, SampleDescriptionKeywordsToExclude, input_path, filenumber)
-                    SiMirror, Purpose, Intent, PolarizationState, FrontPolDirection, BackPolDirection, SolenoidPosition = _sans_purpose_intent_polarization_solenoid(Detector_Panels, Instrument, UsePolCorr, input_path, filenumber)
+                    Sample_Base, Sample_Name, Descrip, ListedConfig, Temp, Voltage = _sans_sample_base_name_descrip(Instrument, SampleDescriptionKeywordsToExclude, input_path, filenumber)
+                    SiMirror, Purpose, Intent, PolarizationState, FrontPolDirection, BackPolDirection, SolenoidPosition = _sans_purpose_intent_polarization_solenoid(Instrument, UsePolCorr, input_path, filenumber)
 
                     if filenumber in ReAssignBlockBeamIntent:
                         Intent = 'Block'
@@ -507,7 +497,7 @@ def _sans_sort_data_automatic(Detector_Panels, input_path, Instrument='VSANS', U
                         Sample_Base = 'Empty'
                         Sample_Name = 'Empty'
                     
-                    Config = _sans_config_id(Detector_Panels, Instrument, input_path, filenumber)
+                    Config = _sans_config_id(Instrument, input_path, filenumber)
                     Count_time = f['entry/collection_time'][0]
                     End_time = dateutil.parser.parse(f['entry/end_time'][0])
                     TimeOfMeasurement = (End_time.timestamp() - Count_time/2)/3600.0 #in hours
@@ -1011,7 +1001,7 @@ def sans_share_empty_polbeam_scatt_catalog(Scatt=None):
                     
     return Scatt
 
-def sans_share_pol_trans_catalog(Detector_Panels, Pol_Trans, Scatt, input_path, Instrument = 'VSANS', SampleDescriptionKeywordsToExclude = [], TempDiffAllowedForSharingTrans = 20.0):
+def sans_share_pol_trans_catalog(Pol_Trans, Scatt, input_path, Instrument = 'VSANS', SampleDescriptionKeywordsToExclude = [], TempDiffAllowedForSharingTrans = 20.0):
     """Fill in missing polarized-transmission entries from sibling samples.
 
     For every sample with a UU scatt run but no pol-trans entry, this
@@ -1024,8 +1014,6 @@ def sans_share_pol_trans_catalog(Detector_Panels, Pol_Trans, Scatt, input_path, 
 
     Parameters
     ----------
-    Detector_Panels : Iterable[str]
-        Required. Forwarded to :func:`_sans_sample_base_name_descrip`.
     Pol_Trans : dict
         Required. Pol-trans catalog to mutate.
     Scatt : dict
@@ -1051,7 +1039,7 @@ def sans_share_pol_trans_catalog(Detector_Panels, Pol_Trans, Scatt, input_path, 
             if 'NA' not in Scatt[Sample]['Config(s)'][Config]['UU']:
                 filenumber = Scatt[Sample]['Config(s)'][Config]['UU'][0]
                 if Sample not in Pol_Trans:
-                    Sample_Base, Sample_Name, Descrip, Listed_Config, Desired_Temp, Voltage = _sans_sample_base_name_descrip(Detector_Panels, Instrument, SampleDescriptionKeywordsToExclude, input_path, filenumber)
+                    Sample_Base, Sample_Name, Descrip, Listed_Config, Desired_Temp, Voltage = _sans_sample_base_name_descrip(Instrument, SampleDescriptionKeywordsToExclude, input_path, filenumber)
                     Pol_Trans[Sample_Name] = {'T_UU' : {'File' : 'NA'},
                                               'T_DD' : {'File' : 'NA'},
                                               'T_UD' : {'File' : 'NA'},
@@ -1107,7 +1095,7 @@ def sans_calc_abs_trans_block_beam_list(Detector_Panels, Instrument, input_path,
         Propagated Poisson uncertainty.
     """
 
-    Config = _sans_config_id(Detector_Panels, Instrument, input_path, trans_filenumber)
+    Config = _sans_config_id(Instrument, input_path, trans_filenumber)
 
     relevant_detectors = list(Detector_Panels)
     CvBYesNo = 0
@@ -1121,7 +1109,7 @@ def sans_calc_abs_trans_block_beam_list(Detector_Panels, Instrument, input_path,
     else:
         examplefilenumber = 0
     BB, BB_Unc = sans_blocked_beam_counts_per_second_list_of_files(Detector_Panels, Instrument, input_path, BBList, Config, examplefilenumber)
-    f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, trans_filenumber)
+    f = _sans_get_by_filenumber(Instrument, input_path, trans_filenumber)
     if f is not None:
         monitor_counts = f['entry/control/monitor_counts'][0]
         count_time = f['entry/collection_time'][0]
@@ -1184,7 +1172,7 @@ def sans_make_trans_mask(Detector_Panels, Instrument, input_path, filenumber, Co
     if str(Config).find('CvB') != -1:
         relevant_detectors.append('B')
         CvBYesNo = 1
-    f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
+    f = _sans_get_by_filenumber(Instrument, input_path, filenumber)
     for dshort in relevant_detectors:
         if 'NG7SANS' in Instrument:
             data = np.array(f['entry/instrument/detector/data'])
@@ -1315,7 +1303,7 @@ def sans_blocked_beam_counts_per_second_list_of_files(Detector_Panels, Instrumen
     item_counter = 0
     for item in filelist:
         filename = input_path + "sans" + str(item) + ".nxs.ngv"
-        f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, item)
+        f = _sans_get_by_filenumber(Instrument, input_path, item)
         if f is not None:            
             Count_time = f['entry/collection_time'][0]
             if Count_time > 0:
@@ -1339,7 +1327,7 @@ def sans_blocked_beam_counts_per_second_list_of_files(Detector_Panels, Instrumen
             f.close()
 
     if len(BB_CountsPerSecond) < 1:
-        f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, examplefilenumber)
+        f = _sans_get_by_filenumber(Instrument, input_path, examplefilenumber)
         if f is not None:
             for dshort in relevant_detectors:
                 if 'VSANS' in Instrument:
@@ -1665,7 +1653,7 @@ def sans_process_trans_catalog(Detector_Panels, Instrument='VSANS', input_path=N
                             Trans[Samp]['Config(s)'][Config]['U_Trans_Cts'].append(Halfpol_trans)
     return Trans
 
-def plex_file(Detector_Panels, input_path, start_number, Instrument='VSANS', HighResMinX=240, HighResMaxX=474, HighResMinY=667, HighResMaxY=917, ConvertHighResToSubset=True, HighResGain=100.0):
+def plex_file(Detector_Panels, input_path, start_number, Instrument='VSANS', HighResMinX=240, HighResMaxX=474, HighResMinY=667, HighResMaxY=917, ConvertHighResToSubset=True):
     """Load the detector-efficiency (PLEX) file, or fall back to ones-arrays.
 
     Looks for a file in ``input_path`` whose name begins with ``PLEX``.
@@ -1689,8 +1677,6 @@ def plex_file(Detector_Panels, input_path, start_number, Instrument='VSANS', Hig
         667, 917).
     ConvertHighResToSubset : bool, optional
         Crop the ``'B'`` panel to those bounds (default ``True``).
-    HighResGain : float, optional
-        Kept for API parity; not used here (default 100.0).
 
     Returns
     -------
@@ -1724,7 +1710,7 @@ def plex_file(Detector_Panels, input_path, start_number, Instrument='VSANS', Hig
         f.close()
     else:
         filenumber = start_number
-        f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
+        f = _sans_get_by_filenumber(Instrument, input_path, filenumber)
         if f is not None:
             for dshort in Detector_Panels:
                 if 'VSANS' in Instrument:
@@ -2348,8 +2334,7 @@ def reduction_pipeline(input_path, save_path, Instrument = "VSANS",
 
         (Sample_Names, Sample_Bases, Configs, BlockBeamCatalog, ScattCatalog, TransCatalog, Pol_TransCatalog, 
         AlignDet_Trans, HE3_TransCatalog, start_number, 
-        filenumberlisting) = _sans_sort_data_automatic(Detector_Panels = Detector_Panels,
-                                                    input_path = input_path, 
+        filenumberlisting) = _sans_sort_data_automatic(input_path = input_path,
                                                     Instrument = Instrument,
                                                     UsePolCorr = UsePolCorr,
                                                     SampleDescriptionKeywordsToExclude = SampleDescriptionKeywordsToExclude,
@@ -2388,8 +2373,7 @@ def reduction_pipeline(input_path, save_path, Instrument = "VSANS",
         ScattCatalog = sans_share_empty_polbeam_scatt_catalog(Scatt = ScattCatalog)
 
 
-        Pol_TransCatalog = sans_share_pol_trans_catalog(Detector_Panels = Detector_Panels,
-                                                    Pol_Trans = Pol_TransCatalog, 
+        Pol_TransCatalog = sans_share_pol_trans_catalog(Pol_Trans = Pol_TransCatalog,
                                                     Scatt = ScattCatalog,
                                                     input_path = input_path,
                                                     Instrument = Instrument,
@@ -2434,8 +2418,7 @@ def reduction_pipeline(input_path, save_path, Instrument = "VSANS",
                                     HighResMinY = HighResMinY,
                                     HighResMaxY = HighResMaxY,
                                     ConvertHighResToSubset = ConvertHighResToSubset,
-                                    HighResGain = HighResGain,
-        )   
+        )
 
         HE3_Cell_Summary = he3_decay_curves(save_path = save_path, 
                                             HE3_Trans = HE3_TransCatalog,
