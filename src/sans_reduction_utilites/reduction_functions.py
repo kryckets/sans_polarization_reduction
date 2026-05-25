@@ -8,7 +8,7 @@ from scipy.optimize import curve_fit
 import json
 
 
-def sans_instrument_selection(Instrument = 'VSANS'):
+def _sans_instrument_selection(Instrument = 'VSANS'):
     """Resolve the detector-panel layout and default slice keys for an instrument.
 
     Parameters
@@ -39,11 +39,10 @@ def sans_instrument_selection(Instrument = 'VSANS'):
     else:
         Detector_Panels = []
         TransPanel = 'NA'
-        print('No instrument assigned!')
 
     return Detector_Panels, TransPanel, Slices
 
-def get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber):
+def _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber):
     """Open the NeXus file for ``filenumber`` and return an h5py handle.
 
     Returns ``None`` if the file does not exist. The caller is responsible
@@ -76,7 +75,7 @@ def get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber):
         return None
 
 
-def sans_sample_base_name_descrip(Detector_Panels, Instrument, SampleDescriptionKeywordsToExclude, input_path, filenumber):
+def _sans_sample_base_name_descrip(Detector_Panels, Instrument, SampleDescriptionKeywordsToExclude, input_path, filenumber):
     """Derive sample names and metadata from the NeXus file description string.
 
     Reads the raw sample description, strips out polarization tags
@@ -88,7 +87,7 @@ def sans_sample_base_name_descrip(Detector_Panels, Instrument, SampleDescription
     Parameters
     ----------
     Detector_Panels : Iterable[str]
-        Required. Forwarded to :func:`get_by_filenumber`.
+        Required. Forwarded to :func:`_sans_get_by_filenumber`.
     Instrument : str
         Required. ``'VSANS'`` or ``'NG7SANS'``.
     SampleDescriptionKeywordsToExclude : Iterable[str]
@@ -118,7 +117,7 @@ def sans_sample_base_name_descrip(Detector_Panels, Instrument, SampleDescription
     record_temp = 0
     record_adam4021 = 0
   
-    f = get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
+    f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
     if f is not None:
         Descrip = 'Instrument not assigned'
         if 'VSANS' in Instrument:
@@ -186,7 +185,7 @@ def sans_sample_base_name_descrip(Detector_Panels, Instrument, SampleDescription
 
     return Sample_Base, Sample_Name, Descrip, Listed_Config, Desired_Temp, Voltage
 
-def sans_purpose_intent_polarization_solenoid(Detector_Panels, Instrument, UsePolCorr, input_path, filenumber):
+def _sans_purpose_intent_polarization_solenoid(Detector_Panels, Instrument, UsePolCorr, input_path, filenumber):
     """Classify a run by purpose, intent, polarization state, and solenoid state.
 
     For VSANS, reads dedicated DAS log entries; for NG7SANS, falls back to
@@ -200,7 +199,7 @@ def sans_purpose_intent_polarization_solenoid(Detector_Panels, Instrument, UsePo
     Parameters
     ----------
     Detector_Panels : Iterable[str]
-        Required. Forwarded to :func:`get_by_filenumber`.
+        Required. Forwarded to :func:`_sans_get_by_filenumber`.
     Instrument : str
         Required. ``'VSANS'`` or ``'NG7SANS'``.
     UsePolCorr : bool or int
@@ -238,7 +237,7 @@ def sans_purpose_intent_polarization_solenoid(Detector_Panels, Instrument, UsePo
     BackPolDirection = 'UNKNOWN'
     SolenoidPosition = 'UNKNOWN'
     PolarizationState = 'UNKNOWN'  
-    f = get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
+    f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
     if f is not None:
         if 'VSANS' in Instrument:
             SiMirror = str(f['entry/DAS_logs/siMirror/siMirror'][()]) #SCATTERING, TRANSMISSION, HE3
@@ -312,7 +311,7 @@ def sans_purpose_intent_polarization_solenoid(Detector_Panels, Instrument, UsePo
     return SiMirror, Purpose, Intent, PolarizationState, FrontPolDirection, BackPolDirection, SolenoidPosition
 
 
-def sans_config_id(Detector_Panels, Instrument, input_path, filenumber):
+def _sans_config_id(Detector_Panels, Instrument, input_path, filenumber):
     """Build a short configuration identifier from instrument geometry.
 
     For VSANS, encodes guides, front/middle carriage distances and
@@ -324,7 +323,7 @@ def sans_config_id(Detector_Panels, Instrument, input_path, filenumber):
     Parameters
     ----------
     Detector_Panels : Iterable[str]
-        Required. Forwarded to :func:`get_by_filenumber`.
+        Required. Forwarded to :func:`_sans_get_by_filenumber`.
     Instrument : str
         Required. ``'VSANS'`` or ``'NG7SANS'``.
     input_path : str
@@ -340,7 +339,7 @@ def sans_config_id(Detector_Panels, Instrument, input_path, filenumber):
     """
 
     Configuration_ID = 'UNKNOWN'
-    f = get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
+    f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
     if f is not None:
         if np.isfinite(f['entry/DAS_logs/wavelength/wavelength'][0]):
             WV = str(f['entry/DAS_logs/wavelength/wavelength'][0])
@@ -364,11 +363,11 @@ def sans_config_id(Detector_Panels, Instrument, input_path, filenumber):
 
     return Configuration_ID
 
-def sans_sort_data_automatic(Detector_Panels, input_path, Instrument='VSANS', UsePolCorr=True, SampleDescriptionKeywordsToExclude=None, TransPanel=None, YesNoManualHe3Entry=False, New_HE3_Files=None, MuValues=None, TeValues=None, Excluded_Filenumbers=None, Min_Filenumber=0, Max_Filenumber=1000000, Min_Scatt_Filenumber=0, Max_Scatt_Filenumber=1000000, Min_Trans_Filenumber=0, Max_Trans_Filenumber=1000000, ReAssignBlockBeamIntent=None, ReAssignEmptyIntent=None, ReAssignOpenIntent=None, ReAssignSampleIntent=None, YesNoRenameEmpties=True):
+def _sans_sort_data_automatic(Detector_Panels, input_path, Instrument='VSANS', UsePolCorr=True, SampleDescriptionKeywordsToExclude=None, TransPanel=None, YesNoManualHe3Entry=False, New_HE3_Files=None, MuValues=None, TeValues=None, Excluded_Filenumbers=None, Min_Filenumber=0, Max_Filenumber=1000000, Min_Scatt_Filenumber=0, Max_Scatt_Filenumber=1000000, Min_Trans_Filenumber=0, Max_Trans_Filenumber=1000000, ReAssignBlockBeamIntent=None, ReAssignEmptyIntent=None, ReAssignOpenIntent=None, ReAssignSampleIntent=None, YesNoRenameEmpties=True):
     """Walk ``input_path`` and build catalogs of every relevant SANS run.
 
-    For each file in range, classifies it via :func:`sans_config_id` and
-    :func:`sans_purpose_intent_polarization_solenoid` and accumulates it
+    For each file in range, classifies it via :func:`_sans_config_id` and
+    :func:`_sans_purpose_intent_polarization_solenoid` and accumulates it
     into one of the per-purpose catalogs (block-beam, scatt, trans,
     pol-trans, align-det-trans, 3He-trans).
 
@@ -491,10 +490,10 @@ def sans_sort_data_automatic(Detector_Panels, input_path, Instrument='VSANS', Us
             if filenumber >= Min_Filenumber and filenumber <= Max_Filenumber and filenumber not in Excluded_Filenumbers:
                 if start_number == 0:
                     start_number = filenumber
-                f = get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
+                f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
                 if f is not None:
-                    Sample_Base, Sample_Name, Descrip, ListedConfig, Temp, Voltage = sans_sample_base_name_descrip(Detector_Panels, Instrument, SampleDescriptionKeywordsToExclude, input_path, filenumber)
-                    SiMirror, Purpose, Intent, PolarizationState, FrontPolDirection, BackPolDirection, SolenoidPosition = sans_purpose_intent_polarization_solenoid(Detector_Panels, Instrument, UsePolCorr, input_path, filenumber)
+                    Sample_Base, Sample_Name, Descrip, ListedConfig, Temp, Voltage = _sans_sample_base_name_descrip(Detector_Panels, Instrument, SampleDescriptionKeywordsToExclude, input_path, filenumber)
+                    SiMirror, Purpose, Intent, PolarizationState, FrontPolDirection, BackPolDirection, SolenoidPosition = _sans_purpose_intent_polarization_solenoid(Detector_Panels, Instrument, UsePolCorr, input_path, filenumber)
 
                     if filenumber in ReAssignBlockBeamIntent:
                         Intent = 'Block'
@@ -508,12 +507,11 @@ def sans_sort_data_automatic(Detector_Panels, input_path, Instrument='VSANS', Us
                         Sample_Base = 'Empty'
                         Sample_Name = 'Empty'
                     
-                    Config = sans_config_id(Detector_Panels, Instrument, input_path, filenumber)
+                    Config = _sans_config_id(Detector_Panels, Instrument, input_path, filenumber)
                     Count_time = f['entry/collection_time'][0]
                     End_time = dateutil.parser.parse(f['entry/end_time'][0])
                     TimeOfMeasurement = (End_time.timestamp() - Count_time/2)/3600.0 #in hours
-                    if filenumber not in Excluded_Filenumbers and 'UNKNOWN' not in Config and Count_time > 29: #and str(Descrip).find("Align") == -1 and str(Descrip).find("align") == -1:
-                        #print('Reading:', filenumber, ' ', Sample_Base, Descrip)
+                    if filenumber not in Excluded_Filenumbers and 'UNKNOWN' not in Config and Count_time > 29:
                         FileNumberList.append(filenumber)
                         if Config not in Configs and 'SCATT' in Purpose and 'Block' not in Intent:
                             Configs[Config] = filenumber
@@ -1013,7 +1011,7 @@ def sans_share_empty_polbeam_scatt_catalog(Scatt=None):
                     
     return Scatt
 
-def vsans_share_pol_trans_catalog(Detector_Panels, Pol_Trans, Scatt, input_path, Instrument = 'VSANS', SampleDescriptionKeywordsToExclude = [], TempDiffAllowedForSharingTrans = 20.0):
+def sans_share_pol_trans_catalog(Detector_Panels, Pol_Trans, Scatt, input_path, Instrument = 'VSANS', SampleDescriptionKeywordsToExclude = [], TempDiffAllowedForSharingTrans = 20.0):
     """Fill in missing polarized-transmission entries from sibling samples.
 
     For every sample with a UU scatt run but no pol-trans entry, this
@@ -1027,7 +1025,7 @@ def vsans_share_pol_trans_catalog(Detector_Panels, Pol_Trans, Scatt, input_path,
     Parameters
     ----------
     Detector_Panels : Iterable[str]
-        Required. Forwarded to :func:`sans_sample_base_name_descrip`.
+        Required. Forwarded to :func:`_sans_sample_base_name_descrip`.
     Pol_Trans : dict
         Required. Pol-trans catalog to mutate.
     Scatt : dict
@@ -1053,7 +1051,7 @@ def vsans_share_pol_trans_catalog(Detector_Panels, Pol_Trans, Scatt, input_path,
             if 'NA' not in Scatt[Sample]['Config(s)'][Config]['UU']:
                 filenumber = Scatt[Sample]['Config(s)'][Config]['UU'][0]
                 if Sample not in Pol_Trans:
-                    Sample_Base, Sample_Name, Descrip, Listed_Config, Desired_Temp, Voltage = sans_sample_base_name_descrip(Detector_Panels, Instrument, SampleDescriptionKeywordsToExclude, input_path, filenumber)
+                    Sample_Base, Sample_Name, Descrip, Listed_Config, Desired_Temp, Voltage = _sans_sample_base_name_descrip(Detector_Panels, Instrument, SampleDescriptionKeywordsToExclude, input_path, filenumber)
                     Pol_Trans[Sample_Name] = {'T_UU' : {'File' : 'NA'},
                                               'T_DD' : {'File' : 'NA'},
                                               'T_UD' : {'File' : 'NA'},
@@ -1073,7 +1071,6 @@ def vsans_share_pol_trans_catalog(Detector_Panels, Pol_Trans, Scatt, input_path,
                     if Base2 == Base and Temp_Diff <= TempDiffAllowedForSharingTrans and Sample2 != Sample and Volt2 == Volt:
                         if 'NA' not in Pol_Trans[Sample2]['T_UU']['File'] and 'NA' not in Pol_Trans[Sample2]['T_DU']['File'] and 'NA' not in Pol_Trans[Sample2]['T_DD']['File'] and 'NA' not in Pol_Trans[Sample2]['T_UD']['File']:
                             Pol_Trans[Sample] = Pol_Trans[Sample2]
-                            print('Substituting in pol-trans measurements of ', Sample2, 'for ', Sample)
     return Pol_Trans
 
 def sans_calc_abs_trans_block_beam_list(Detector_Panels, Instrument, input_path, trans_filenumber, BBList, DetectorPanel):
@@ -1110,7 +1107,7 @@ def sans_calc_abs_trans_block_beam_list(Detector_Panels, Instrument, input_path,
         Propagated Poisson uncertainty.
     """
 
-    Config = sans_config_id(Detector_Panels, Instrument, input_path, trans_filenumber)
+    Config = _sans_config_id(Detector_Panels, Instrument, input_path, trans_filenumber)
 
     relevant_detectors = list(Detector_Panels)
     CvBYesNo = 0
@@ -1124,7 +1121,7 @@ def sans_calc_abs_trans_block_beam_list(Detector_Panels, Instrument, input_path,
     else:
         examplefilenumber = 0
     BB, BB_Unc = sans_blocked_beam_counts_per_second_list_of_files(Detector_Panels, Instrument, input_path, BBList, Config, examplefilenumber)
-    f = get_by_filenumber(Detector_Panels, Instrument, input_path, trans_filenumber)
+    f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, trans_filenumber)
     if f is not None:
         monitor_counts = f['entry/control/monitor_counts'][0]
         count_time = f['entry/collection_time'][0]
@@ -1187,7 +1184,7 @@ def sans_make_trans_mask(Detector_Panels, Instrument, input_path, filenumber, Co
     if str(Config).find('CvB') != -1:
         relevant_detectors.append('B')
         CvBYesNo = 1
-    f = get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
+    f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
     for dshort in relevant_detectors:
         if 'NG7SANS' in Instrument:
             data = np.array(f['entry/instrument/detector/data'])
@@ -1318,7 +1315,7 @@ def sans_blocked_beam_counts_per_second_list_of_files(Detector_Panels, Instrumen
     item_counter = 0
     for item in filelist:
         filename = input_path + "sans" + str(item) + ".nxs.ngv"
-        f = get_by_filenumber(Detector_Panels, Instrument, input_path, item)
+        f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, item)
         if f is not None:            
             Count_time = f['entry/collection_time'][0]
             if Count_time > 0:
@@ -1342,7 +1339,7 @@ def sans_blocked_beam_counts_per_second_list_of_files(Detector_Panels, Instrumen
             f.close()
 
     if len(BB_CountsPerSecond) < 1:
-        f = get_by_filenumber(Detector_Panels, Instrument, input_path, examplefilenumber)
+        f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, examplefilenumber)
         if f is not None:
             for dshort in relevant_detectors:
                 if 'VSANS' in Instrument:
@@ -1710,7 +1707,6 @@ def plex_file(Detector_Panels, input_path, start_number, Instrument='VSANS', Hig
         filename = str(Plex_file[0])
     fullpath = os.path.join(input_path, filename)
     if os.path.isfile(fullpath):
-        print('Reading in ', filename)
         f = h5py.File(fullpath)
         for dshort in Detector_Panels:
             if 'VSANS' in Instrument:
@@ -1728,7 +1724,7 @@ def plex_file(Detector_Panels, input_path, start_number, Instrument='VSANS', Hig
         f.close()
     else:
         filenumber = start_number
-        f = get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
+        f = _sans_get_by_filenumber(Detector_Panels, Instrument, input_path, filenumber)
         if f is not None:
             for dshort in Detector_Panels:
                 if 'VSANS' in Instrument:
@@ -1760,12 +1756,10 @@ def plex_file(Detector_Panels, input_path, start_number, Instrument='VSANS', Hig
                 else:
                     PlexData[dshort] = data_filler
             f.close()
-        print('Plex file not found; populated with ones instead')
-        print(' ')
             
     return filename, PlexData
 
-def He3Decay_func(t, p, gamma):
+def he3_decay_func(t, p, gamma):
     """Exponential 3He polarization decay model ``p * exp(-t / gamma)``.
 
     Used as the model function for ``scipy.optimize.curve_fit`` inside
@@ -1787,12 +1781,12 @@ def He3Decay_func(t, p, gamma):
 
     return p * np.exp(-t / gamma)
 
-def he3_decay_curves(save_path, HE3_Trans):
+def he3_decay_curves(save_path, HE3_Trans, plot_3he_curves=False, display_summary=False):
     """Fit each cell's atomic-polarization decay and save diagnostic plots.
 
     For every cell in ``HE3_Trans``, inverts the measured IN/OUT
     transmissions back to atomic polarization via the cell's ``Mu`` and
-    ``Te``, fits :func:`He3Decay_func` (or falls back to ``gamma = 1000``
+    ``Te``, fits :func:`he3_decay_func` (or falls back to ``gamma = 1000``
     when only one point exists), records ``Atomic_P0``, ``Gamma(hours)``,
     derived neutron polarization, and uncertainties in
     ``HE3_Cell_Summary``, and saves two PNGs per cell (atomic-pol fit and
@@ -1805,6 +1799,10 @@ def he3_decay_curves(save_path, HE3_Trans):
     HE3_Trans : dict
         Required. 3He transmission catalog (output of
         :func:`sans_process_he3_trans_catalog`).
+    plot_3he_curves : bool, optional
+        Whether to save the diagnostic PNGs (default ``False``).
+    display_summary : bool, optional
+        Whether to print the per-sample polarization summary to console (default ``False``).
 
     Returns
     -------
@@ -1830,7 +1828,7 @@ def he3_decay_curves(save_path, HE3_Trans):
             gamma_Unc = 'NA'
             PCell0_Unc = 'NA'
         else:
-            popt, pcov = curve_fit(He3Decay_func, xdata, ydata)
+            popt, pcov = curve_fit(he3_decay_func, xdata, ydata)
             P0, gamma = popt
             P0_Unc, gamma_Unc = np.sqrt(np.diag(pcov))
             PCell0 = np.tanh(Mu * P0)
@@ -1845,16 +1843,16 @@ def he3_decay_curves(save_path, HE3_Trans):
 
         Name = HE3_Trans[entry]['Cell_name'][0]
         HE3_Cell_Summary[HE3_Trans[entry]['Insert_time']] = {'Atomic_P0' : P0, 'Atomic_P0_Unc' : P0_Unc, 'Gamma(hours)' : gamma, 'Gamma_Unc' : gamma_Unc, 'Mu' : Mu, 'Te' : Te, 'Name' : Name, 'Neutron_P0' : PCell0, 'Neutron_P0_Unc' : PCell0_Unc}
-        print('He3Cell Summary for Cell Identity', HE3_Trans[entry]['Cell_name'][0])
-        print('PolCell0: ', PCell0, '+/-', PCell0_Unc)
-        print('AtomicPol0: ', P0, '+/-', P0_Unc)
-        print('Gamma (hours): ', gamma, '+/-', gamma_Unc)
-        print('     ')
+        if display_summary:
+            print('He3Cell Summary for Cell Identity', HE3_Trans[entry]['Cell_name'][0])
+            print('PolCell0: ', PCell0, '+/-', PCell0_Unc)
+            print('AtomicPol0: ', P0, '+/-', P0_Unc)
+            print('Gamma (hours): ', gamma, '+/-', gamma_Unc)
 
         if xdata.size >= 2:
-            fit = He3Decay_func(xdata, popt[0], popt[1])
-            fit_max = He3Decay_func(xdata, popt[0] + P0_Unc, popt[1] + gamma_Unc)
-            fit_min = He3Decay_func(xdata, popt[0] - P0_Unc, popt[1] - gamma_Unc)
+            fit = he3_decay_func(xdata, popt[0], popt[1])
+            fit_max = he3_decay_func(xdata, popt[0] + P0_Unc, popt[1] + gamma_Unc)
+            fit_min = he3_decay_func(xdata, popt[0] - P0_Unc, popt[1] - gamma_Unc)
             fig = plt.figure()
             plt.plot(xdata, ydata, 'b*', label='data')
             plt.plot(xdata, fit_max, 'r-', label='fit of data (upper bounds)')
@@ -1866,7 +1864,8 @@ def he3_decay_curves(save_path, HE3_Trans):
             plt.legend()
             file_path = os.path.join(save_path, 'He3Curve_AtomicPolarization_Cell{name}.png'.format(name = Name))
             fig.savefig(file_path)
-            plt.show()
+            if plot_3he_curves:
+                plt.show()
             plt.close()
 
         if xdata.size >= 2:
@@ -1879,7 +1878,7 @@ def he3_decay_curves(save_path, HE3_Trans):
                 extra_time = last_time + i*1
                 xdatalonger.append(extra_time)
             xdataextended = np.array(xdatalonger)
-            AtomicPol_fitlonger = He3Decay_func(xdataextended, popt[0], popt[1])
+            AtomicPol_fitlonger = he3_decay_func(xdataextended, popt[0], popt[1])
             TMAJ_fit = Te * np.exp(-Mu*(1.0 - AtomicPol_fitlonger))
             TMIN_fit = Te * np.exp(-Mu*(1.0 + AtomicPol_fitlonger))
             
@@ -1896,7 +1895,8 @@ def he3_decay_curves(save_path, HE3_Trans):
             plt.legend()
             file_path = os.path.join(save_path, 'He3PredictedDecayCurve_{name}.png'.format(name = Name))
             fig.savefig(file_path)
-            plt.show()
+            if plot_3he_curves:
+                plt.show()
             plt.close()
 
     return HE3_Cell_Summary
@@ -1951,7 +1951,7 @@ def he3_pol_at_given_time(entry_time, HE3_Cell_Summary):
         
     return NeutronPol, UnpolHE3Trans, T_MAJ, T_MIN
 
-def sans_polarization_supermirror_and_flipper(Pol_Trans, HE3_Cell_Summary, UsePolCorr):
+def sans_polarization_supermirror_and_flipper(Pol_Trans, HE3_Cell_Summary, UsePolCorr, display_summary=False):
     """Derive the supermirror polarization and flipper efficiency per sample.
 
     For each cross-section measurement time in ``Pol_Trans``, evaluates
@@ -2031,11 +2031,11 @@ def sans_polarization_supermirror_and_flipper(Pol_Trans, HE3_Cell_Summary, UsePo
             DU = np.array(Pol_Trans[ID]['T_DU']['Trans'])
             DU_UnpolHe3Trans = np.array(Pol_Trans[ID]['T_DU']['Unpol_Trans'])
             DU_NeutronPol = np.array(Pol_Trans[ID]['T_DU']['Neutron_Pol'])
-            print('  ')
-            print(ID)
-            print('UU, DU, DD, UD Trans:', int(np.average(UU)*10000)/10000, " " , int(np.average(DU)*10000)/10000, " ", int(np.average(DD)*10000)/10000, " ", int(np.average(UD)*10000)/10000)
             NPAve = 0.25*(np.average(UU_NeutronPol) + np.average(DU_NeutronPol) + np.average(DD_NeutronPol) + np.average(UD_NeutronPol))
-            print('3He Pol (Ave.)', NPAve)
+            if display_summary:
+                print('  ')
+                print(ID)
+                print('3He Pol (Ave.)', NPAve)
             
             PF = 1.00
             Pol_Trans[ID]['P_F'] = np.average(PF)
@@ -2045,19 +2045,20 @@ def sans_polarization_supermirror_and_flipper(Pol_Trans, HE3_Cell_Summary, UsePo
             PSMDU = (1.0 - DU/DU_UnpolHe3Trans)/(DU_NeutronPol)
             PSM_Ave = 0.25*(np.average(PSMUU) + np.average(PSMDD) + np.average(PSMUD) + np.average(PSMDU))
             Pol_Trans[ID]['P_SM'] = np.average(PSM_Ave)
-            print('Sample Depol * PSM', Pol_Trans[ID]['P_SM'])
-            print('Flipping ratios (UU/DU, DD/UD):', int(10000*np.average(UU)/np.average(DU))/10000, int(10000*np.average(DD)/np.average(UD))/10000)
+            if display_summary:
+                print('Sample Depol * PSM', Pol_Trans[ID]['P_SM'])
+                print('Flipping ratios (UU/DU, DD/UD):', int(10000*np.average(UU)/np.average(DU))/10000, int(10000*np.average(DD)/np.average(UD))/10000)
             
             if not UsePolCorr:
                 '''#False Means no, turn it off'''
                 Pol_Trans[ID]['P_SM'] = 1.0
                 Pol_Trans[ID]['P_F'] = 1.0
-                print('Manually reset P_SM and P_F to unity')
+                if display_summary:
+                    print('Manually reset P_SM and P_F to unity')
 
-    print(" ")
     return Pol_Trans
 
-def sans_best_supermirror_polarization(Pol_Trans, UsePolCorr = True, Starting_PSM = 0.9985, YesNoBypassBestGuessPSM = False):
+def sans_best_supermirror_polarization(Pol_Trans,  Starting_PSM = 0.9985, YesNoBypassBestGuessPSM = False, display_summary=False):
     """Pick the best supermirror polarization estimate to use downstream.
 
     Starts from ``Starting_PSM`` and, if ``YesNoBypassBestGuessPSM`` is
@@ -2069,8 +2070,8 @@ def sans_best_supermirror_polarization(Pol_Trans, UsePolCorr = True, Starting_PS
     Pol_Trans : dict
         Required. Pol-trans catalog (consulted for measured ``P_SM`` when
         ``YesNoBypassBestGuessPSM`` is true).
-    UsePolCorr : bool, optional
-        Controls whether the chosen value is printed (default ``True``).
+    display_summary : bool, optional
+        Controls whether the chosen value is printed (default ``False``).
     Starting_PSM : float, optional
         Prior best-known supermirror polarization (default 0.9985).
     YesNoBypassBestGuessPSM : bool, optional
@@ -2089,11 +2090,11 @@ def sans_best_supermirror_polarization(Pol_Trans, UsePolCorr = True, Starting_PS
             if 'P_SM' in Pol_Trans[Sample]:
                 Measured_PSM.append(Pol_Trans[Sample]['P_SM'])
     Truest_PSM = np.amax(Measured_PSM)
-    if UsePolCorr:
+    if display_summary:
         print('Best measured PSM value (currently or previously measured) is', Truest_PSM)
     if Truest_PSM > 1:
         Truest_PSM = 1.0
-        if UsePolCorr:
+        if display_summary:
             print('Best PSM value set to 1.0')
     print(" ")
 
@@ -2257,13 +2258,15 @@ def reduction_pipeline(input_path, save_path, Instrument = "VSANS",
                         HighResGain=100.0,
                         Notes = 'not used',
                         Starting_PSM = 0.9985,
-                        YesNoBypassBestGuessPSM = False
+                        YesNoBypassBestGuessPSM = False,
+                        plot_3he_curves = False,
+                        dispay_summary = False,
 ):
         """Run the full pre-polarization-correction SANS reduction pipeline.
 
-        Composes :func:`sans_instrument_selection`,
-        :func:`sans_sort_data_automatic`, the three ``sans_share_*``
-        catalog completers, :func:`vsans_share_pol_trans_catalog`,
+        Composes :func:`_sans_instrument_selection`,
+        :func:`_sans_sort_data_automatic`, the three ``sans_share_*``
+        catalog completers, :func:`sans_share_pol_trans_catalog`,
         :func:`sans_process_he3_trans_catalog`,
         :func:`sans_process_pol_trans_catalog`,
         :func:`sans_process_trans_catalog`, :func:`plex_file`,
@@ -2328,6 +2331,10 @@ def reduction_pipeline(input_path, save_path, Instrument = "VSANS",
         YesNoBypassBestGuessPSM : bool, optional
             Include measured ``P_SM`` values when picking ``Truest_PSM``
             (default ``False``).
+        plot_3he_curves : bool, optional
+            Whether to save the diagnostic PNGs (default ``False``).
+        dispay_summary : bool, optional
+            Whether to print the per-sample polarization summary to console (default ``False``).
 
         Returns
         -------
@@ -2337,11 +2344,11 @@ def reduction_pipeline(input_path, save_path, Instrument = "VSANS",
             ``ReductionResults.json`` in ``save_path``.
         """
 
-        Detector_Panels, TransPanel, Slices = sans_instrument_selection(Instrument = Instrument)
+        Detector_Panels, TransPanel, Slices = _sans_instrument_selection(Instrument = Instrument)
 
         (Sample_Names, Sample_Bases, Configs, BlockBeamCatalog, ScattCatalog, TransCatalog, Pol_TransCatalog, 
         AlignDet_Trans, HE3_TransCatalog, start_number, 
-        filenumberlisting) = sans_sort_data_automatic(Detector_Panels = Detector_Panels,
+        filenumberlisting) = _sans_sort_data_automatic(Detector_Panels = Detector_Panels,
                                                     input_path = input_path, 
                                                     Instrument = Instrument,
                                                     UsePolCorr = UsePolCorr,
@@ -2381,7 +2388,7 @@ def reduction_pipeline(input_path, save_path, Instrument = "VSANS",
         ScattCatalog = sans_share_empty_polbeam_scatt_catalog(Scatt = ScattCatalog)
 
 
-        Pol_TransCatalog = vsans_share_pol_trans_catalog(Detector_Panels = Detector_Panels,
+        Pol_TransCatalog = sans_share_pol_trans_catalog(Detector_Panels = Detector_Panels,
                                                     Pol_Trans = Pol_TransCatalog, 
                                                     Scatt = ScattCatalog,
                                                     input_path = input_path,
@@ -2431,20 +2438,24 @@ def reduction_pipeline(input_path, save_path, Instrument = "VSANS",
         )   
 
         HE3_Cell_Summary = he3_decay_curves(save_path = save_path, 
-                                            HE3_Trans = HE3_TransCatalog
+                                            HE3_Trans = HE3_TransCatalog,
+                                            plot_3he_curves = plot_3he_curves,
+                                            display_summary=dispay_summary,
                                             )
-        print(HE3_Cell_Summary)
 
         Pol_TransCatalog = sans_polarization_supermirror_and_flipper(
                 Pol_Trans = Pol_TransCatalog, 
                 HE3_Cell_Summary = HE3_Cell_Summary, 
-                UsePolCorr = UsePolCorr)
+                UsePolCorr = UsePolCorr,
+                display_summary=dispay_summary,
+                )
         
         Truest_PSM = sans_best_supermirror_polarization(
                 Pol_Trans = Pol_TransCatalog, 
-                UsePolCorr = UsePolCorr, 
                 Starting_PSM = Starting_PSM, 
-                YesNoBypassBestGuessPSM = YesNoBypassBestGuessPSM)
+                YesNoBypassBestGuessPSM = YesNoBypassBestGuessPSM,
+                display_summary=dispay_summary
+                )
         
         sans_record_data_processing_steps(save_path = save_path, 
                                           Plex_Name = Plex_Name, 
@@ -2498,6 +2509,7 @@ def reduction_pipeline(input_path, save_path, Instrument = "VSANS",
         file_path = os.path.join(save_path, 'ReductionResults.json')
         with open(file_path, 'w') as f:
             json.dump(Results, f, indent=2, default=_json_default)
-        print(f"Saved Results to {file_path}")
+        if dispay_summary:
+            print(f"Saved Results to {file_path}")
         return Results
 
