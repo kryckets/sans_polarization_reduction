@@ -35,8 +35,17 @@ def regression_test_reduction_pipeline(input_path, save_path, Instrument, New_HE
             51316,
             51317
           ], f"Expected UD config, but got: {results_dict['ScattCatalog']['Fe3O4NPs_4.9V_300.0K']['Config(s)']['4Gd300cmF1400cmM5.5Ang']['UD']}"
+    assert results_dict["TransCatalog"]["Fe3O4NPs_4.9V_300.0K"]["Config(s)"]["4Gd300cmF1400cmM5.5Ang"]["Unpol_Files"] == [
+            51288,
+            51303,
+            51318,
+            51320
+          ], f"Expected Unpol_Files, but got: {results_dict['TransCatalog']['Fe3O4NPs_4.9V_300.0K']['Config(s)']['4Gd300cmF1400cmM5.5Ang']['Unpol_Files']}"
+    assert results_dict["TransCatalog"]["Fe3O4NPs_4.9V_300.0K"]["Config(s)"]["4Gd300cmF1400cmM5.5Ang"]["U_Files"] == [
+            51294,
+            51309
+          ], f"Expected U_Files, but got: {results_dict['TransCatalog']['Fe3O4NPs_4.9V_300.0K']['Config(s)']['4Gd300cmF1400cmM5.5Ang']['U_Files']}"
     
-
     return
 
 if __name__ == "__main__":
