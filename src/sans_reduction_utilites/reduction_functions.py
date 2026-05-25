@@ -39,7 +39,6 @@ def _sans_instrument_selection(Instrument = 'VSANS'):
     else:
         Detector_Panels = []
         TransPanel = 'NA'
-        print('No instrument assigned!')
 
     return Detector_Panels, TransPanel, Slices
 
@@ -512,8 +511,7 @@ def _sans_sort_data_automatic(Detector_Panels, input_path, Instrument='VSANS', U
                     Count_time = f['entry/collection_time'][0]
                     End_time = dateutil.parser.parse(f['entry/end_time'][0])
                     TimeOfMeasurement = (End_time.timestamp() - Count_time/2)/3600.0 #in hours
-                    if filenumber not in Excluded_Filenumbers and 'UNKNOWN' not in Config and Count_time > 29: #and str(Descrip).find("Align") == -1 and str(Descrip).find("align") == -1:
-                        #print('Reading:', filenumber, ' ', Sample_Base, Descrip)
+                    if filenumber not in Excluded_Filenumbers and 'UNKNOWN' not in Config and Count_time > 29:
                         FileNumberList.append(filenumber)
                         if Config not in Configs and 'SCATT' in Purpose and 'Block' not in Intent:
                             Configs[Config] = filenumber
@@ -1073,7 +1071,6 @@ def sans_share_pol_trans_catalog(Detector_Panels, Pol_Trans, Scatt, input_path, 
                     if Base2 == Base and Temp_Diff <= TempDiffAllowedForSharingTrans and Sample2 != Sample and Volt2 == Volt:
                         if 'NA' not in Pol_Trans[Sample2]['T_UU']['File'] and 'NA' not in Pol_Trans[Sample2]['T_DU']['File'] and 'NA' not in Pol_Trans[Sample2]['T_DD']['File'] and 'NA' not in Pol_Trans[Sample2]['T_UD']['File']:
                             Pol_Trans[Sample] = Pol_Trans[Sample2]
-                            print('Substituting in pol-trans measurements of ', Sample2, 'for ', Sample)
     return Pol_Trans
 
 def sans_calc_abs_trans_block_beam_list(Detector_Panels, Instrument, input_path, trans_filenumber, BBList, DetectorPanel):
@@ -1710,7 +1707,6 @@ def plex_file(Detector_Panels, input_path, start_number, Instrument='VSANS', Hig
         filename = str(Plex_file[0])
     fullpath = os.path.join(input_path, filename)
     if os.path.isfile(fullpath):
-        print('Reading in ', filename)
         f = h5py.File(fullpath)
         for dshort in Detector_Panels:
             if 'VSANS' in Instrument:
@@ -1760,8 +1756,6 @@ def plex_file(Detector_Panels, input_path, start_number, Instrument='VSANS', Hig
                 else:
                     PlexData[dshort] = data_filler
             f.close()
-        print('Plex file not found; populated with ones instead')
-        print(' ')
             
     return filename, PlexData
 
@@ -1787,7 +1781,7 @@ def he3_decay_func(t, p, gamma):
 
     return p * np.exp(-t / gamma)
 
-def he3_decay_curves(save_path, HE3_Trans):
+def he3_decay_curves(save_path, HE3_Trans, plot_3he_curves=False, display_summary=False):
     """Fit each cell's atomic-polarization decay and save diagnostic plots.
 
     For every cell in ``HE3_Trans``, inverts the measured IN/OUT
@@ -1805,6 +1799,10 @@ def he3_decay_curves(save_path, HE3_Trans):
     HE3_Trans : dict
         Required. 3He transmission catalog (output of
         :func:`sans_process_he3_trans_catalog`).
+    plot_3he_curves : bool, optional
+        Whether to save the diagnostic PNGs (default ``False``).
+    display_summary : bool, optional
+        Whether to print the per-sample polarization summary to console (default ``False``).
 
     Returns
     -------
@@ -1845,11 +1843,11 @@ def he3_decay_curves(save_path, HE3_Trans):
 
         Name = HE3_Trans[entry]['Cell_name'][0]
         HE3_Cell_Summary[HE3_Trans[entry]['Insert_time']] = {'Atomic_P0' : P0, 'Atomic_P0_Unc' : P0_Unc, 'Gamma(hours)' : gamma, 'Gamma_Unc' : gamma_Unc, 'Mu' : Mu, 'Te' : Te, 'Name' : Name, 'Neutron_P0' : PCell0, 'Neutron_P0_Unc' : PCell0_Unc}
-        print('He3Cell Summary for Cell Identity', HE3_Trans[entry]['Cell_name'][0])
-        print('PolCell0: ', PCell0, '+/-', PCell0_Unc)
-        print('AtomicPol0: ', P0, '+/-', P0_Unc)
-        print('Gamma (hours): ', gamma, '+/-', gamma_Unc)
-        print('     ')
+        if display_summary:
+            print('He3Cell Summary for Cell Identity', HE3_Trans[entry]['Cell_name'][0])
+            print('PolCell0: ', PCell0, '+/-', PCell0_Unc)
+            print('AtomicPol0: ', P0, '+/-', P0_Unc)
+            print('Gamma (hours): ', gamma, '+/-', gamma_Unc)
 
         if xdata.size >= 2:
             fit = he3_decay_func(xdata, popt[0], popt[1])
@@ -1866,7 +1864,8 @@ def he3_decay_curves(save_path, HE3_Trans):
             plt.legend()
             file_path = os.path.join(save_path, 'He3Curve_AtomicPolarization_Cell{name}.png'.format(name = Name))
             fig.savefig(file_path)
-            plt.show()
+            if plot_3he_curves:
+                plt.show()
             plt.close()
 
         if xdata.size >= 2:
@@ -1896,7 +1895,8 @@ def he3_decay_curves(save_path, HE3_Trans):
             plt.legend()
             file_path = os.path.join(save_path, 'He3PredictedDecayCurve_{name}.png'.format(name = Name))
             fig.savefig(file_path)
-            plt.show()
+            if plot_3he_curves:
+                plt.show()
             plt.close()
 
     return HE3_Cell_Summary
@@ -1951,7 +1951,7 @@ def he3_pol_at_given_time(entry_time, HE3_Cell_Summary):
         
     return NeutronPol, UnpolHE3Trans, T_MAJ, T_MIN
 
-def sans_polarization_supermirror_and_flipper(Pol_Trans, HE3_Cell_Summary, UsePolCorr):
+def sans_polarization_supermirror_and_flipper(Pol_Trans, HE3_Cell_Summary, UsePolCorr, display_summary=False):
     """Derive the supermirror polarization and flipper efficiency per sample.
 
     For each cross-section measurement time in ``Pol_Trans``, evaluates
@@ -2031,11 +2031,11 @@ def sans_polarization_supermirror_and_flipper(Pol_Trans, HE3_Cell_Summary, UsePo
             DU = np.array(Pol_Trans[ID]['T_DU']['Trans'])
             DU_UnpolHe3Trans = np.array(Pol_Trans[ID]['T_DU']['Unpol_Trans'])
             DU_NeutronPol = np.array(Pol_Trans[ID]['T_DU']['Neutron_Pol'])
-            print('  ')
-            print(ID)
-            print('UU, DU, DD, UD Trans:', int(np.average(UU)*10000)/10000, " " , int(np.average(DU)*10000)/10000, " ", int(np.average(DD)*10000)/10000, " ", int(np.average(UD)*10000)/10000)
             NPAve = 0.25*(np.average(UU_NeutronPol) + np.average(DU_NeutronPol) + np.average(DD_NeutronPol) + np.average(UD_NeutronPol))
-            print('3He Pol (Ave.)', NPAve)
+            if display_summary:
+                print('  ')
+                print(ID)
+                print('3He Pol (Ave.)', NPAve)
             
             PF = 1.00
             Pol_Trans[ID]['P_F'] = np.average(PF)
@@ -2045,19 +2045,20 @@ def sans_polarization_supermirror_and_flipper(Pol_Trans, HE3_Cell_Summary, UsePo
             PSMDU = (1.0 - DU/DU_UnpolHe3Trans)/(DU_NeutronPol)
             PSM_Ave = 0.25*(np.average(PSMUU) + np.average(PSMDD) + np.average(PSMUD) + np.average(PSMDU))
             Pol_Trans[ID]['P_SM'] = np.average(PSM_Ave)
-            print('Sample Depol * PSM', Pol_Trans[ID]['P_SM'])
-            print('Flipping ratios (UU/DU, DD/UD):', int(10000*np.average(UU)/np.average(DU))/10000, int(10000*np.average(DD)/np.average(UD))/10000)
+            if display_summary:
+                print('Sample Depol * PSM', Pol_Trans[ID]['P_SM'])
+                print('Flipping ratios (UU/DU, DD/UD):', int(10000*np.average(UU)/np.average(DU))/10000, int(10000*np.average(DD)/np.average(UD))/10000)
             
             if not UsePolCorr:
                 '''#False Means no, turn it off'''
                 Pol_Trans[ID]['P_SM'] = 1.0
                 Pol_Trans[ID]['P_F'] = 1.0
-                print('Manually reset P_SM and P_F to unity')
+                if display_summary:
+                    print('Manually reset P_SM and P_F to unity')
 
-    print(" ")
     return Pol_Trans
 
-def sans_best_supermirror_polarization(Pol_Trans, UsePolCorr = True, Starting_PSM = 0.9985, YesNoBypassBestGuessPSM = False):
+def sans_best_supermirror_polarization(Pol_Trans,  Starting_PSM = 0.9985, YesNoBypassBestGuessPSM = False, display_summary=False):
     """Pick the best supermirror polarization estimate to use downstream.
 
     Starts from ``Starting_PSM`` and, if ``YesNoBypassBestGuessPSM`` is
@@ -2069,8 +2070,8 @@ def sans_best_supermirror_polarization(Pol_Trans, UsePolCorr = True, Starting_PS
     Pol_Trans : dict
         Required. Pol-trans catalog (consulted for measured ``P_SM`` when
         ``YesNoBypassBestGuessPSM`` is true).
-    UsePolCorr : bool, optional
-        Controls whether the chosen value is printed (default ``True``).
+    display_summary : bool, optional
+        Controls whether the chosen value is printed (default ``False``).
     Starting_PSM : float, optional
         Prior best-known supermirror polarization (default 0.9985).
     YesNoBypassBestGuessPSM : bool, optional
@@ -2089,11 +2090,11 @@ def sans_best_supermirror_polarization(Pol_Trans, UsePolCorr = True, Starting_PS
             if 'P_SM' in Pol_Trans[Sample]:
                 Measured_PSM.append(Pol_Trans[Sample]['P_SM'])
     Truest_PSM = np.amax(Measured_PSM)
-    if UsePolCorr:
+    if display_summary:
         print('Best measured PSM value (currently or previously measured) is', Truest_PSM)
     if Truest_PSM > 1:
         Truest_PSM = 1.0
-        if UsePolCorr:
+        if display_summary:
             print('Best PSM value set to 1.0')
     print(" ")
 
@@ -2257,7 +2258,9 @@ def reduction_pipeline(input_path, save_path, Instrument = "VSANS",
                         HighResGain=100.0,
                         Notes = 'not used',
                         Starting_PSM = 0.9985,
-                        YesNoBypassBestGuessPSM = False
+                        YesNoBypassBestGuessPSM = False,
+                        plot_3he_curves = False,
+                        dispay_summary = False,
 ):
         """Run the full pre-polarization-correction SANS reduction pipeline.
 
@@ -2328,6 +2331,10 @@ def reduction_pipeline(input_path, save_path, Instrument = "VSANS",
         YesNoBypassBestGuessPSM : bool, optional
             Include measured ``P_SM`` values when picking ``Truest_PSM``
             (default ``False``).
+        plot_3he_curves : bool, optional
+            Whether to save the diagnostic PNGs (default ``False``).
+        dispay_summary : bool, optional
+            Whether to print the per-sample polarization summary to console (default ``False``).
 
         Returns
         -------
@@ -2431,20 +2438,24 @@ def reduction_pipeline(input_path, save_path, Instrument = "VSANS",
         )   
 
         HE3_Cell_Summary = he3_decay_curves(save_path = save_path, 
-                                            HE3_Trans = HE3_TransCatalog
+                                            HE3_Trans = HE3_TransCatalog,
+                                            plot_3he_curves = plot_3he_curves,
+                                            display_summary=dispay_summary,
                                             )
-        print(HE3_Cell_Summary)
 
         Pol_TransCatalog = sans_polarization_supermirror_and_flipper(
                 Pol_Trans = Pol_TransCatalog, 
                 HE3_Cell_Summary = HE3_Cell_Summary, 
-                UsePolCorr = UsePolCorr)
+                UsePolCorr = UsePolCorr,
+                display_summary=dispay_summary,
+                )
         
         Truest_PSM = sans_best_supermirror_polarization(
                 Pol_Trans = Pol_TransCatalog, 
-                UsePolCorr = UsePolCorr, 
                 Starting_PSM = Starting_PSM, 
-                YesNoBypassBestGuessPSM = YesNoBypassBestGuessPSM)
+                YesNoBypassBestGuessPSM = YesNoBypassBestGuessPSM,
+                display_summary=dispay_summary
+                )
         
         sans_record_data_processing_steps(save_path = save_path, 
                                           Plex_Name = Plex_Name, 
@@ -2498,6 +2509,7 @@ def reduction_pipeline(input_path, save_path, Instrument = "VSANS",
         file_path = os.path.join(save_path, 'ReductionResults.json')
         with open(file_path, 'w') as f:
             json.dump(Results, f, indent=2, default=_json_default)
-        print(f"Saved Results to {file_path}")
+        if dispay_summary:
+            print(f"Saved Results to {file_path}")
         return Results
 
