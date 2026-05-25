@@ -4,7 +4,7 @@ from numpy.linalg import inv
 import os
 from scipy import ndimage
 
-from .reduction_functions import _sans_get_by_filenumber, _sans_sample_base_name_descrip
+from .reduction_functions import _sans_get_by_filenumber, _sans_sample_base_name_descrip, _resolve_bb_list
 
 def _he3_pol_at_given_time(entry_time, HE3_Cell_Summary):
     """Compute the 3He cell polarization and transmissions at a given time.
@@ -1151,12 +1151,7 @@ def _sans_make_slices_and_save_ascii(YesNoShowPlots, Detector_Panels, Instrument
             representative_filenumber = Configs[Config]
             if representative_filenumber != 0:
                 Solid_Angle = _solid_angle_all_detectors(Detector_Panels, Instrument, input_path, representative_filenumber, Config)
-                BBList = [0]
-                if Config in BlockBeamCatalog:
-                    if 'NA' not in BlockBeamCatalog[Config]['Trans']['File']:
-                        BBList = BlockBeamCatalog[Config]['Trans']['File']
-                    elif 'NA' not in BlockBeamCatalog[Config]['Scatt']['File']:
-                        BBList = BlockBeamCatalog[Config]['Scatt']['File']
+                BBList = _resolve_bb_list(Config, BlockBeamCatalog)
                 BB_per_second, BBUnc_per_second = _all_sans_blocked_beam_counts_per_second_list_of_files(Detector_Panels, Instrument, input_path, BBList, Config, representative_filenumber)
                 Qx, Qy, Qz, Q_total, Q_perp_unc, Q_parl_unc, InPlaneAngleMap, dimXX, dimYY, Shadow_Mask = _q_calculation_all_detectors(Detector_Panels, Instrument, SampleApertureInMM, SampleDescriptionKeywordsToExclude, input_path, Calc_Q_From_Trans, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY, ConvertHighResToSubset, representative_filenumber, Config, MiddlePixelBorderHorizontal, MiddlePixelBorderVertical, AlignDet_Trans)
                 QValues_All = {'QX':Qx,'QY':Qy,'QZ':Qz,'Q_total':Q_total,'Q_perp_unc':Q_perp_unc,'Q_parl_unc':Q_parl_unc}

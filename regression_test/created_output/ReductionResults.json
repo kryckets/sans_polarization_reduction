@@ -1,6 +1,6 @@
 {
-  "input_path": "c:\\Users\\klkry\\Workspace\\Git\\sans_polarization_reduction\\test_data\\Fe3O4Nanoparticles_VSANS26903\\raw_data",
-  "save_path": "c:\\Users\\klkry\\Workspace\\Git\\sans_polarization_reduction\\regression_test\\created_output",
+  "input_path": "C:\\Users\\klkry\\Workspace\\Git\\sans_polarization_reduction\\test_data\\Fe3O4Nanoparticles_VSANS26903\\raw_data",
+  "save_path": "C:\\Users\\klkry\\Workspace\\Git\\sans_polarization_reduction\\regression_test\\created_output",
   "status": "Reduction completed successfully.",
   "Truest_PSM": 0.9985,
   "Sample_Names": [
