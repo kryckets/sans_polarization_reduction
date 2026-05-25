@@ -1459,6 +1459,30 @@ def _sans_attenuator_table(Instrument, wavelength, attenuation):
             
     return Trans
 
+def _resolve_bb_list(Config, BlockBeam):
+    """Return the block-beam file list for ``Config`` (trans preferred, scatt fallback).
+
+    Parameters
+    ----------
+    Config : str
+        Required. Configuration label to look up in ``BlockBeam``.
+    BlockBeam : dict
+        Required. Block-beam catalog (output of :func:`_sans_sort_data_automatic`).
+
+    Returns
+    -------
+    list[int]
+        Block-beam file numbers for the config, or ``[0]`` if none are
+        available.
+    """
+    if Config in BlockBeam:
+        if 'NA' not in BlockBeam[Config]['Trans']['File']:
+            return BlockBeam[Config]['Trans']['File']
+        if 'NA' not in BlockBeam[Config]['Scatt']['File']:
+            return BlockBeam[Config]['Scatt']['File']
+    return [0]
+
+
 def _sans_process_he3_trans_catalog(Detector_Panels, Instrument='VSANS', input_path=None, HE3_Trans=None, BlockBeam=None, DetectorPanel=None):
     """Compute 3He IN/OUT transmission ratios for every cell-load entry.
 
@@ -1500,12 +1524,7 @@ def _sans_process_he3_trans_catalog(Detector_Panels, Instrument='VSANS', input_p
             for InFile in HE3_Trans[Cell]['HE3_IN_file']:
                 OutFile = HE3_Trans[Cell]['HE3_OUT_file'][counter]
                 Config = HE3_Trans[Cell]['Config'][counter]
-                BBList = [0]
-                if Config in BlockBeam:
-                    if 'NA' not in BlockBeam[Config]['Trans']['File']:
-                        BBList = BlockBeam[Config]['Trans']['File']
-                    elif 'NA' not in BlockBeam[Config]['Scatt']['File']:
-                        BBList = BlockBeam[Config]['Scatt']['File']
+                BBList = _resolve_bb_list(Config, BlockBeam)
                 IN_trans, IN_trans_unc = _sans_calc_abs_trans_block_beam_list(Detector_Panels, Instrument, input_path, InFile, BBList, DetectorPanel)
                 OUT_trans, OUT_trans_unc = _sans_calc_abs_trans_block_beam_list(Detector_Panels, Instrument, input_path, OutFile, BBList, DetectorPanel)
                 trans = IN_trans / OUT_trans
@@ -1563,12 +1582,7 @@ def _sans_process_pol_trans_catalog(Detector_Panels, Instrument='VSANS', input_p
                 UDFile = Pol_Trans[Samp]['T_UD']['File'][counter]
                 SMFile = Pol_Trans[Samp]['T_SM']['File'][counter]
                 Config = Pol_Trans[Samp]['Config'][counter]
-                BBList = [0]
-                if Config in BlockBeam:
-                    if 'NA' not in BlockBeam[Config]['Trans']['File']:
-                        BBList = BlockBeam[Config]['Trans']['File']
-                    elif 'NA' not in BlockBeam[Config]['Scatt']['File']:
-                        BBList = BlockBeam[Config]['Scatt']['File']
+                BBList = _resolve_bb_list(Config, BlockBeam)
                 UU_trans, UU_trans_unc = _sans_calc_abs_trans_block_beam_list(Detector_Panels, Instrument, input_path, UUFile, BBList, DetectorPanel) #Masking done within this step
                 DU_trans, DU_trans_unc = _sans_calc_abs_trans_block_beam_list(Detector_Panels, Instrument, input_path, DUFile, BBList, DetectorPanel) #Masking done within this step
                 DD_trans, DD_trans_unc = _sans_calc_abs_trans_block_beam_list(Detector_Panels, Instrument, input_path, DDFile, BBList, DetectorPanel) #Masking done within this step
@@ -1630,12 +1644,7 @@ def _sans_process_trans_catalog(Detector_Panels, Instrument='VSANS', input_path=
     #_sans_attenuator_table(Instrument, wavelength, attenuation)
     for Samp in Trans:
         for Config in Trans[Samp]['Config(s)']:
-            BBList = [0]
-            if Config in BlockBeam:
-                if 'NA' not in BlockBeam[Config]['Trans']['File']:
-                    BBList = BlockBeam[Config]['Trans']['File']
-                elif 'NA' not in BlockBeam[Config]['Scatt']['File']:
-                    BBList = BlockBeam[Config]['Scatt']['File']
+            BBList = _resolve_bb_list(Config, BlockBeam)
 
             if 'NA' not in Trans[Samp]['Config(s)'][Config]['Unpol_Files']:
                 for UNF in Trans[Samp]['Config(s)'][Config]['Unpol_Files']:
