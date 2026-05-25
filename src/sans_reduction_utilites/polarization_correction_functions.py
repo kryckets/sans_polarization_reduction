@@ -778,8 +778,39 @@ def _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMa
             SM[np.absolute(Angles - 90.0) <= 60.0] = 0.0
             
         SectorMask[dshort] = SM
-        
+
     return SectorMask
+
+def _build_slice_masks(Detector_Panels, SiMirror, Config, InPlaneAngleMap, SectorCutAngles):
+    """Build Horz/Vert/Circ/Diag sector masks for the slice routines.
+
+    Parameters
+    ----------
+    Detector_Panels : Iterable[str]
+        Required. Short panel names.
+    SiMirror : str
+        Required. Si-mirror state — passed through to the sector-mask builder.
+    Config : str
+        Required. Configuration label; ``'CvB'`` adds detector ``'B'``.
+    InPlaneAngleMap : dict[str, np.ndarray]
+        Required. Per-panel azimuthal angle map.
+    SectorCutAngles : float
+        Required. Sector half-width (degrees) for Horz/Vert/Diag.
+
+    Returns
+    -------
+    masks : dict[str, dict[str, np.ndarray]]
+        Mapping ``'Circ'`` / ``'Horz'`` / ``'Vert'`` / ``'Diag'`` to per-panel
+        sector masks. ``'Diag'`` is the sum of the +45° and -45° sectors.
+    """
+    BothSides = 1
+    Horz = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, SectorCutAngles, BothSides)
+    Vert = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 90, SectorCutAngles, BothSides)
+    Circ = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, 180, BothSides)
+    DiagA = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 45, SectorCutAngles, BothSides)
+    DiagB = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, -45, SectorCutAngles, BothSides)
+    Diag = {d: DiagA[d] + DiagB[d] for d in DiagA}
+    return {'Circ': Circ, 'Horz': Horz, 'Vert': Vert, 'Diag': Diag}
 
 def _min_max_q(Detector_Panels, Instrument, Absolute_Q_min, Absolute_Q_max, Q_total, Config, HighResMinX, HighResMaxX, HighResMinY, HighResMaxY):
     """Choose Q binning limits and bin count for the current configuration.
@@ -1318,31 +1349,23 @@ def _sans_full_pol_slices(YesNoShowPlots, save_path, Detector_Panels, SiMirror, 
         Corr = "NotCorr"
 
     PlotYesNo = 0
-    BothSides = 1
-    HorzMask = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, SectorCutAngles, BothSides)
-    VertMask = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 90, SectorCutAngles, BothSides)
-    CircMask = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, 180, BothSides)
-    DiagMaskA = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 45, SectorCutAngles, BothSides)
-    DiagMaskB = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, -45, SectorCutAngles, BothSides)
-    DiagMask = {}
-    for dshort in relevant_detectors:
-        DiagMask[dshort] = DiagMaskA[dshort] + DiagMaskB[dshort]
+    masks = _build_slice_masks(Detector_Panels, SiMirror, Config, InPlaneAngleMap, SectorCutAngles)
 
     ReturnSlices = {}
     
     for slices in Slices:
         if slices == "Circ":
             slice_key = "CircAve"
-            local_mask = CircMask
+            local_mask = masks['Circ']
         elif slices == "Vert":
             slice_key = "Vert"+str(SectorCutAngles)
-            local_mask = VertMask
+            local_mask = masks['Vert']
         elif slices == "Horz":
             slice_key = "Horz"+str(SectorCutAngles)
-            local_mask = HorzMask
+            local_mask = masks['Horz']
         elif slices == "Diag":
             slice_key = "Diag"+str(SectorCutAngles)
-            local_mask = DiagMask
+            local_mask = masks['Diag']
 
         UU = _two_dim_to_one_dim(Detector_Panels, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, PolCorrUU, PolCorrUU_Unc, Sample, Config, PlotYesNo, AverageQRanges)
         DU = _two_dim_to_one_dim(Detector_Panels, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, PolCorrDU, PolCorrDU_Unc, Sample, Config, PlotYesNo, AverageQRanges)
@@ -1405,31 +1428,23 @@ def _sans_half_pol_slices(Detector_Panels, SiMirror, Slices, SectorCutAngles, Av
         AverageQRanges = False
 
     PlotYesNo = 0
-    BothSides = 1
-    HorzMask = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, SectorCutAngles, BothSides)
-    VertMask = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 90, SectorCutAngles, BothSides)
-    CircMask = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, 180, BothSides)
-    DiagMaskA = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 45, SectorCutAngles, BothSides)
-    DiagMaskB = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, -45, SectorCutAngles, BothSides)
-    DiagMask = {}
-    for dshort in relevant_detectors:
-        DiagMask[dshort] = DiagMaskA[dshort] + DiagMaskB[dshort]
+    masks = _build_slice_masks(Detector_Panels, SiMirror, Config, InPlaneAngleMap, SectorCutAngles)
 
     ReturnSlices = {}
     
     for slices in Slices:
         if slices == "Circ":
             slice_key = "CircAve"
-            local_mask = CircMask
+            local_mask = masks['Circ']
         elif slices == "Vert":
             slice_key = "Vert"+str(SectorCutAngles)
-            local_mask = VertMask
+            local_mask = masks['Vert']
         elif slices == "Horz":
             slice_key = "Horz"+str(SectorCutAngles)
-            local_mask = HorzMask
+            local_mask = masks['Horz']
         elif slices == "Diag":
             slice_key = "Diag"+str(SectorCutAngles)
-            local_mask = DiagMask
+            local_mask = masks['Diag']
 
         UCut = _two_dim_to_one_dim(Detector_Panels, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, U, U_Unc, Sample, Config, PlotYesNo, AverageQRanges)
         DCut = _two_dim_to_one_dim(Detector_Panels, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, D, D_Unc, Sample, Config, PlotYesNo, AverageQRanges)
@@ -1482,31 +1497,23 @@ def _sans_unpol_slices(Detector_Panels, SiMirror, Slices, SectorCutAngles, Avera
         AverageQRanges = False
 
     PlotYesNo = 0
-    BothSides = 1
-    HorzMask = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, SectorCutAngles, BothSides)
-    VertMask = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 90, SectorCutAngles, BothSides)
-    CircMask = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 0, 180, BothSides)
-    DiagMaskA = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, 45, SectorCutAngles, BothSides)
-    DiagMaskB = _sector_mask_all_detectors(Detector_Panels, SiMirror, Config, InPlaneAngleMap, -45, SectorCutAngles, BothSides)
-    DiagMask = {}
-    for dshort in relevant_detectors:
-        DiagMask[dshort] = DiagMaskA[dshort] + DiagMaskB[dshort]
+    masks = _build_slice_masks(Detector_Panels, SiMirror, Config, InPlaneAngleMap, SectorCutAngles)
 
     ReturnSlices = {}
     
     for slices in Slices:
         if slices == "Circ":
             slice_key = "CircAve"
-            local_mask = CircMask
+            local_mask = masks['Circ']
         elif slices == "Vert":
             slice_key = "Vert"+str(SectorCutAngles)
-            local_mask = VertMask
+            local_mask = masks['Vert']
         elif slices == "Horz":
             slice_key = "Horz"+str(SectorCutAngles)
-            local_mask = HorzMask
+            local_mask = masks['Horz']
         elif slices == "Diag":
             slice_key = "Diag"+str(SectorCutAngles)
-            local_mask = DiagMask
+            local_mask = masks['Diag']
 
         UnpolCut = _two_dim_to_one_dim(Detector_Panels, slice_key, Q_min, Q_max, Q_bins, QValues_All, Shadow_Mask, local_mask, Unpol, Unpol_Unc, Sample, Config, PlotYesNo, AverageQRanges)
         
@@ -2049,6 +2056,36 @@ def _ascii_like_output(Detector_Panels, save_path, YesNo_2DFilesPerDetector, Typ
 
     return
 
+def _write_columns(save_path, file_name, columns, header, fmt='%1.4e'):
+    """Stack a list of 1-D arrays into columns and write them to a text file.
+
+    Twin of the trailing block in the ``_save_text_data*`` family: builds
+    ``np.array(columns).T``, joins ``save_path`` and ``file_name``, then
+    calls :func:`numpy.savetxt` with ``delimiter=' '``, ``comments=''``,
+    and the supplied header/format.
+
+    Parameters
+    ----------
+    save_path : str
+        Required. Output directory.
+    file_name : str
+        Required. File name within ``save_path``.
+    columns : list of array-like
+        Required. Equal-length 1-D arrays, one per output column.
+    header : str
+        Required. Header text written at the top of the file.
+    fmt : str, optional
+        ``numpy.savetxt`` format string (default ``'%1.4e'``).
+
+    Returns
+    -------
+    None
+    """
+    text_output = np.array(columns).T
+    file_path = os.path.join(save_path, file_name)
+    np.savetxt(file_path, text_output, delimiter=' ', comments='', header=header, fmt=fmt)
+
+
 def _save_text_data(save_path, Type, Slice, Sample, Config, DataMatrix):
     """Write a single-cross-section 1-D slice to ``Slice{Type}_*.txt``.
 
@@ -2072,18 +2109,10 @@ def _save_text_data(save_path, Type, Slice, Sample, Config, DataMatrix):
     """
 
     Q = DataMatrix['Q']
-    Int = DataMatrix['I']
-    IntUnc = DataMatrix['I_Unc']
-    Q_mean = DataMatrix['Q_Mean']
-    Q_Unc = DataMatrix['Q_Uncertainty']
-    Shadow = np.ones_like(Q)
-    text_output = np.array([Q, Int, IntUnc, Q_Unc, Q_mean, Shadow])
-    #text_output = np.array([Q, Int, IntUnc, Q_mean, Q_Unc, Shadow])
-    text_output = text_output.T
-    file_name = 'Slice{key}_{samp},{cf}_{cut}.txt'.format(key=Type, samp=Sample, cf = Config, cut = Slice)
-    file_path = os.path.join(save_path, file_name)
-    np.savetxt(file_path, text_output, delimiter = ' ', comments = '', header= 'Q, I, DelI, Q_Unc, Q_mean, Shadow', fmt='%1.4e')
-  
+    columns = [Q, DataMatrix['I'], DataMatrix['I_Unc'],
+               DataMatrix['Q_Uncertainty'], DataMatrix['Q_Mean'], np.ones_like(Q)]
+    file_name = 'Slice{key}_{samp},{cf}_{cut}.txt'.format(key=Type, samp=Sample, cf=Config, cut=Slice)
+    _write_columns(save_path, file_name, columns, 'Q, I, DelI, Q_Unc, Q_mean, Shadow')
     return
 
 def _save_text_data_unpol(save_path, Sub, Slice, Sample, Config, DataMatrix):
@@ -2109,19 +2138,10 @@ def _save_text_data_unpol(save_path, Sub, Slice, Sample, Config, DataMatrix):
     None
     """
 
-    Q = DataMatrix['Q']
-    Int = DataMatrix['Unpol']
-    IntUnc = DataMatrix['Unpol_Unc']
-    Q_mean = DataMatrix['Q_Mean']
-    Q_Unc = DataMatrix['Q_Unc']
-    Shadow = DataMatrix['Shadow']
-    text_output = np.array([Q, Int, IntUnc, Q_Unc, Q_mean, Shadow])
-    #text_output = np.array([Q, Int, IntUnc, Q_mean, Q_Unc, Shadow])
-    text_output = text_output.T
-    file_name = 'SliceUnpol_{samp},{cf}_{cut}{key}.txt'.format(samp=Sample, cf = Config, cut = Slice, key = Sub)
-    file_path = os.path.join(save_path, file_name)
-    np.savetxt(file_path, text_output, delimiter = ' ', comments = '', header= 'Q, I, DelI, Q_Unc, Q_mean, Shadow', fmt='%1.4e')
-  
+    columns = [DataMatrix['Q'], DataMatrix['Unpol'], DataMatrix['Unpol_Unc'],
+               DataMatrix['Q_Unc'], DataMatrix['Q_Mean'], DataMatrix['Shadow']]
+    file_name = 'SliceUnpol_{samp},{cf}_{cut}{key}.txt'.format(samp=Sample, cf=Config, cut=Slice, key=Sub)
+    _write_columns(save_path, file_name, columns, 'Q, I, DelI, Q_Unc, Q_mean, Shadow')
     return
 
 
@@ -2149,24 +2169,15 @@ def _save_text_data_four_cross_sections(save_path, Type, Slice, Sample, Config, 
     """
 
     Q = UUMatrix['Q']
-    UU = UUMatrix['I']
-    UU_Unc = UUMatrix['I_Unc']
-    DU = DUMatrix['I']
-    DU_Unc = DUMatrix['I_Unc']
-    DD = DDMatrix['I']
-    DD_Unc = DDMatrix['I_Unc']
-    UD = UDMatrix['I']
-    UD_Unc = UDMatrix['I_Unc']
-    Q_mean = UUMatrix['Q_Mean']
-    Q_Unc = UUMatrix['Q_Uncertainty']
-    Shadow = np.ones_like(Q)
-    text_output = np.array([Q, UU, UU_Unc, DU, DU_Unc, DD, DD_Unc, UD, UD_Unc, Q_Unc, Q_mean, Shadow])
-    text_output = text_output.T
-    file_name = 'SliceFullPol_{samp},{cf}_{key}{cut}.txt'.format(samp=Sample, cf = Config, key = Type, cut = Slice)
-    file_path = os.path.join(save_path, file_name)
-    np.savetxt(file_path, text_output,
-               delimiter = ' ', comments = '', header= 'Q, UU, DelUU, DU, DelDU, DD, DelDD, UD, DelUD, Q_Unc, Q_mean, Shadow', fmt='%1.4e')
-  
+    columns = [Q,
+               UUMatrix['I'], UUMatrix['I_Unc'],
+               DUMatrix['I'], DUMatrix['I_Unc'],
+               DDMatrix['I'], DDMatrix['I_Unc'],
+               UDMatrix['I'], UDMatrix['I_Unc'],
+               UUMatrix['Q_Uncertainty'], UUMatrix['Q_Mean'], np.ones_like(Q)]
+    file_name = 'SliceFullPol_{samp},{cf}_{key}{cut}.txt'.format(samp=Sample, cf=Config, key=Type, cut=Slice)
+    _write_columns(save_path, file_name, columns,
+                   'Q, UU, DelUU, DU, DelDU, DD, DelDD, UD, DelUD, Q_Unc, Q_mean, Shadow')
     return
 
 def _save_text_data_four_combined_cross_sections(save_path,  Type, Slice, Sub, Sample, Config, Matrix):
@@ -2197,25 +2208,15 @@ def _save_text_data_four_combined_cross_sections(save_path,  Type, Slice, Sub, S
     None
     """
 
-    Q = Matrix['Q']
-    UU = Matrix['UU']
-    UU_Unc = Matrix['UU_Unc']
-    DU = Matrix['DU']
-    DU_Unc = Matrix['DU_Unc']
-    DD = Matrix['DD']
-    DD_Unc = Matrix['DD_Unc']
-    UD = Matrix['UD']
-    UD_Unc = Matrix['UD_Unc']
-    Q_mean = Matrix['Q_Mean']
-    Q_Unc = Matrix['Q_Unc']
-    Shadow = Matrix['Shadow']
-    text_output = np.array([Q, UU, UU_Unc, DU, DU_Unc, DD, DD_Unc, UD, UD_Unc, Q_Unc, Q_mean, Shadow])
-    text_output = text_output.T
-    file_name = 'SliceFullPol_{samp},{cf}_{key}{cut}{sub}.txt'.format(samp=Sample, cf = Config, key = Type, cut = Slice, sub = Sub)
-    file_path = os.path.join(save_path, file_name)
-    np.savetxt(file_path, text_output,
-               delimiter = ' ', comments = '', header= 'Q, UU, DelUU, DU, DelDU, DD, DelDD, UD, DelUD, Q_Unc, Q_mean, Shadow', fmt='%1.4e')
-  
+    columns = [Matrix['Q'],
+               Matrix['UU'], Matrix['UU_Unc'],
+               Matrix['DU'], Matrix['DU_Unc'],
+               Matrix['DD'], Matrix['DD_Unc'],
+               Matrix['UD'], Matrix['UD_Unc'],
+               Matrix['Q_Unc'], Matrix['Q_Mean'], Matrix['Shadow']]
+    file_name = 'SliceFullPol_{samp},{cf}_{key}{cut}{sub}.txt'.format(samp=Sample, cf=Config, key=Type, cut=Slice, sub=Sub)
+    _write_columns(save_path, file_name, columns,
+                   'Q, UU, DelUU, DU, DelDU, DD, DelDD, UD, DelUD, Q_Unc, Q_mean, Shadow')
     return
 
 def _plot_four_cross_sections(save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, Type, Slice, Sample, Config, UU, DU, DD, UD):
