@@ -43,9 +43,15 @@ if __name__ == "__main__":
     base_path = os.getcwd()
     parent_path = os.path.dirname(base_path)
     input_path = os.path.join(parent_path, "test_data", "Fe3O4Nanoparticles_VSANS26903", "raw_data")
-    save_path = os.path.join(parent_path, "regression_test")
+    save_path = os.path.join(parent_path, "regression_test", "created_output")
     if not os.path.exists(save_path):
         os.makedirs(save_path)
+    regression_test_reduction_pipeline(input_path = input_path, 
+                                       save_path = save_path, 
+                                       Instrument = "VSANS",
+                                       New_HE3_Files = [],
+                                       MuValues = [],
+                                       TeValues = [])
     regression_test_reduction_pipeline(input_path = input_path, 
                                        save_path = save_path, 
                                        Instrument = "VSANS",
