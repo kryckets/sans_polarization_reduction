@@ -1598,15 +1598,12 @@ def sans_save_slices_and_results(StructurallyIsotropic, Slices, SectorCutAngles,
         for Config in Configs:
             representative_filenumber = Configs[Config]
             if representative_filenumber != 0:
-                print(' ')
-                print('Saving text files and data plots in configuration', Config, '...')
                 FullPolResults = {}
                 HalfPolResults = {}
                 UnpolResults = {}
                 for Sample in Sample_Names:
                     if Sample in ScattCatalog:                
                         if str(ScattCatalog[Sample]['Intent']).find('Sample') != -1:
-                            print('     ', Sample)
                             if Sample in AllFullPolSlices[Config]:
                                 FullPolResults[Sample] = sans_process_full_pol_slices(StructurallyIsotropic, Slices, SectorCutAngles, save_path, YesNoShowPlots, YesNoSetPlotXRange, YesNoSetPlotYRange, PlotXmin, PlotXmax, PlotYmin, PlotYmax, AutoSubtractEmpty, UseMTCirc, Config, AllFullPolSlices[Config], Sample)
                             if Sample in AllHalfPolSlices[Config]:
@@ -1896,7 +1893,7 @@ def two_dim_to_one_dim(Detector_Panels, Instrument, Key, Q_min, Q_max, Q_bins, Q
         plt.title('{keyword}_{idnum},{cf}'.format(keyword=Key, idnum=ID, cf = Config))
         plt.legend()
         fig.savefig('{keyword}_{idnum},CF{cf}.png'.format(keyword=Key, idnum=ID, cf = Config))
-        plt.show()
+        #plt.show()
         
     Q_Common = Q_Values[nonzero_combined_mask]
     Output = {        
@@ -2047,7 +2044,6 @@ def ascii_like_output(Detector_Panels, Instrument, save_path, YesNo_2DFilesPerDe
             DeltaInt = IntensityUnc.flatten()
             IntensityUnc = IntensityUnc.flatten()
             if YesNo_2DFilesPerDetector:
-                print('Outputting Unpol data into ASCII-like format for {det}, GroupID = {idnum} '.format(det=dshort, idnum=ID))
                 ASCII_like = np.array([QXData, QYData, Int, DeltaInt, QZData, QParlUnc, QPerpUnc, ShadowHolder])
                 ASCII_like = ASCII_like.T
                 file_name = '{TP}Scatt_{Samp}_{CF}_{det}.DAT'.format(TP=Type, Samp=ID, CF=Config, det=dshort)
@@ -2077,8 +2073,7 @@ def ascii_like_output(Detector_Panels, Instrument, save_path, YesNo_2DFilesPerDe
                 QPR_Combined = np.concatenate((QPR_Combined, QPR), axis=0)
                 QParlUnc_Combined = np.concatenate((QParlUnc_Combined, QParlUnc), axis=0)
                 Shadow_Combined = np.concatenate((Shadow_Combined, ShadowHolder), axis=0)
-
-        print('Outputting {TP} 2D data, {idnum}, {CF} '.format(TP=Type, idnum=ID, CF=Config))        
+   
         ASCII_Combined = np.array([QXData_Combined, QYData_Combined, Int_Combined, DeltaInt_Combined, QZData_Combined, QParlUnc_Combined, QPerpUnc_Combined, Shadow_Combined])
         ASCII_Combined = ASCII_Combined.T
         file_name = '{TP}Scatt_{Samp}_{CF}.DAT'.format(TP=Type, Samp=ID, CF=Config)
@@ -2582,14 +2577,12 @@ def all_sans_pol_corr_scatt_files(Detector_Panels, Instrument, UsePolCorr, input
     if Sample in Trans and str(Scatt[Sample]['Config(s)'][Config]['UU']).find('NA') == -1 and str(Scatt[Sample]['Config(s)'][Config]['DU']).find('NA') == -1 and str(Scatt[Sample]['Config(s)'][Config]['DD']).find('NA') == -1 and str(Scatt[Sample]['Config(s)'][Config]['UD']).find('NA') == -1:
         Have_FullPol = 1
 
-        if Sample in Pol_Trans:
+        if Sample in Pol_Trans: 
             PSM = Pol_Trans[Sample]['P_SM']
             PF = Pol_Trans[Sample]['P_F']
-            print(Sample, Config, 'PSM is', PSM)
             if UsePolCorr >= 1:
                 Have_FullPol = 2
         else:
-            print(Sample, Config, 'missing P_F and P_SM; will proceed without pol-correction!')
             PF = 1.0
             PSM = 1.0
         '''#Calculating an average block beam counts per pixel and time (seems to work better than a pixel-by-pixel subtraction,
@@ -3604,7 +3597,7 @@ def annular_average(Detector_Panels, Instrument, save_path, Sample, Config, InPl
     file_name = 'AnnularAverage_{samp},{cf}.png'.format(samp=Sample, cf = Config)   
     file_path = os.path.join(save_path, file_name)
     fig.savefig(file_path)
-    plt.show()
+    #plt.show()
     plt.close()
       
     return
@@ -3731,8 +3724,6 @@ def sans_save_comparative_plots(Slices, ScattCatalog, SectorCutAngles, save_path
         for Config in Configs:
             representative_filenumber = Configs[Config]
             if representative_filenumber != 0:
-                print(' ')
-                print('Saving comparative text files and data plots in configuration', Config, '...')
 
                 CompareVariable = CompareFullPolSumCirc
                 CutVariable = 'Circ'
@@ -3914,7 +3905,7 @@ def sans_comparison_plots_and_text(save_path, Slices, ScattCatalog, Config, Comp
                 file_name = 'Compare_{base},{cf}_{name}.png'.format(base = Base, cf=Config, name = FullCutName)
                 file_path = os.path.join(save_path, file_name)
                 fig.savefig(file_path)
-                plt.show()
+                #plt.show()
                 plt.close()
             else:
                 plt.close()
